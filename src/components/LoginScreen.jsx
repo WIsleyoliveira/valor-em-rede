@@ -122,7 +122,7 @@ export default function LoginScreen({ onLogin }) {
     try {
       if (!isSupabaseEnabled) {
         await new Promise((r) => setTimeout(r, 500));
-        onLogin({ name: name.trim() || email.split('@')[0], email: email.trim(), role });
+        onLogin({ name: name.trim() || email.split('@')[0], email: email.trim(), role: 'member' });
         return;
       }
 
@@ -158,7 +158,7 @@ export default function LoginScreen({ onLogin }) {
 
   const fillDemo = (type) => {
     const u = DEMO_USERS.find((u) => u.role === type);
-    if (u) { setEmail(u.email); setPassword(u.password); setName(u.name); setRole(u.role); }
+    if (u) { setEmail(u.email); setPassword(u.password); setName(u.name); }
   };
 
   // ── UI helpers ──────────────────────────────────────────────────────────────
