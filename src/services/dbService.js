@@ -198,8 +198,11 @@ export async function signIn(email, password) {
   };
 }
 
-export async function signUp(name, email, password, role = 'member') {
+export async function signUp(name, email, password) {
   if (!isSupabaseEnabled) return { user: null, error: null, offline: true };
+
+  // Novos cadastros são SEMPRE membros — o gestor é único e pré-definido no banco
+  const role = 'member';
 
   const { data, error } = await supabase.auth.signUp({ email, password });
   if (error) return { user: null, error: translateAuthError(error.message) };
@@ -209,7 +212,7 @@ export async function signUp(name, email, password, role = 'member') {
     return { user: null, error: 'EMAIL_JA_CADASTRADO' };
   }
 
-  // Cria perfil na tabela members
+  // Cria perfil na tabela members sempre como 'member'
   const { data: profile, error: profileError } = await supabase
     .from('members')
     .insert([{ auth_id: data.user.id, name, email: email.toLowerCase().trim(), role }])

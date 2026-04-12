@@ -79,8 +79,13 @@ alter table public.amazon_people_log enable row level security;
 create policy "members_select" on public.members
   for select using (auth.role() = 'authenticated');
 
+-- INSERT: autenticados podem inserir, MAS somente com role = 'member'
+-- (o gestor fixo é criado manualmente via SQL, nunca pelo app)
 create policy "members_insert" on public.members
-  for insert with check (auth.role() = 'authenticated');
+  for insert with check (
+    auth.role() = 'authenticated'
+    and role = 'member'
+  );
 
 create policy "members_update" on public.members
   for update using (auth_id = auth.uid());
@@ -119,3 +124,27 @@ create policy "log_insert" on public.amazon_people_log
 -- FIM DO SCHEMA
 -- Após executar, acesse Authentication → Providers e ative "Email"
 -- ─────────────────────────────────────────────────────────────────────────────
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- GESTOR FIXO DA COMUNIDADE
+-- Execute este bloco SEPARADAMENTE após criar a conta do gestor em:
+--   Supabase → Authentication → Users → "Add user" → confirm email
+--
+-- Substitua os valores abaixo com os dados reais antes de executar:
+--   <AUTH_ID_DO_GESTOR> → cole o UUID do usuário criado acima
+--   <EMAIL_DO_GESTOR>   → e-mail usado no cadastro
+--   <NOME_DO_GESTOR>    → nome completo do gestor
+-- ─────────────────────────────────────────────────────────────────────────────
+/*
+insert into public.members (auth_id, name, email, role, status)
+values (
+  '<AUTH_ID_DO_GESTOR>',
+  '<NOME_DO_GESTOR>',
+  '<EMAIL_DO_GESTOR>',
+  'manager',
+  'active'
+)
+on conflict (email) do update set
+  auth_id = excluded.auth_id,
+  role    = 'manager';
+*/

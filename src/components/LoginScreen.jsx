@@ -57,7 +57,6 @@ export default function LoginScreen({ onLogin }) {
   const [email, setEmail]           = useState('');
   const [password, setPassword]     = useState('');
   const [showPwd, setShowPwd]       = useState(false);
-  const [role, setRole]             = useState('member');
   const [name, setName]             = useState('');
   const [error, setError]           = useState('');
   const [loading, setLoading]       = useState(false);
@@ -138,7 +137,7 @@ export default function LoginScreen({ onLogin }) {
         clearAttempts();
         onLogin(user);
       } else {
-        const { user, error: err } = await signUp(name.trim(), email.trim(), password, role);
+        const { user, error: err } = await signUp(name.trim(), email.trim(), password);
         if (err === 'EMAIL_JA_CADASTRADO') {
           setEmailStatus('taken');
           setError('Este e-mail já está cadastrado. Faça login.');
@@ -281,21 +280,6 @@ export default function LoginScreen({ onLogin }) {
               </div>
             )}
           </div>
-
-          {/* Perfil — só no cadastro */}
-          {mode === 'register' && (
-            <div>
-              <label className="form-label">Perfil de acesso</label>
-              <div style={{ display: 'flex', gap: '0.75rem' }}>
-                {[{ v: 'member', label: 'Membro' }, { v: 'manager', label: 'Gestor' }].map(({ v, label }) => (
-                  <label key={v} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', padding: '0.6rem', border: `2px solid ${role === v ? 'var(--primary)' : 'var(--border)'}`, borderRadius: 8, cursor: 'pointer', fontWeight: role === v ? 600 : 400, color: role === v ? 'var(--primary)' : 'var(--text-secondary)', background: role === v ? 'var(--primary-light)' : 'transparent', transition: 'all 0.15s' }}>
-                    <input type="radio" name="role" value={v} checked={role === v} onChange={() => setRole(v)} style={{ display: 'none' }} />
-                    {label}
-                  </label>
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* Mensagem de erro */}
           {error && (
