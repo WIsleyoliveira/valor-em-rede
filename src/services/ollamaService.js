@@ -1,19 +1,29 @@
-// ─── AI Service — Groq (produção) com fallback para Ollama local ─────────────
-const GROQ_URL   = 'https://api.groq.com/openai/v1/chat/completions';
-const GROQ_KEY   = import.meta.env.VITE_GROQ_API_KEY;
-const GROQ_MODEL = 'llama3-8b-8192';           // LLaMA 3 8B via Groq (gratuito)
-
+// ─── AI Service — /api/ai (Vercel Function) em prod, Ollama local em dev ────
 const OLLAMA_BASE  = 'http://localhost:11434';
 const OLLAMA_MODEL = 'llama3.2:3b';
 
-// Se VITE_GROQ_API_KEY estiver definida, usa Groq; caso contrário tenta Ollama local
-const useGroq = Boolean(GROQ_KEY);
+// Em produção (Vercel) usa a Function serverless; em dev tenta Ollama local
+const IS_PROD = import.meta.env.PROD;
 
 export async function checkOllamaStatus() {
-  // Groq configurado → sempre "online"
-  if (useGroq) return { online: true, models: [GROQ_MODEL], provider: 'groq' };
+  if (IS_PROD) {
+    // Testa se a Vercel Function responde (faz um POST mínimo)
+    try {
+      const res = await fetch('/api/ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: 'ping', max_tokens: 1 }),
+        signal: AbortSignal.timeout(5000),
+      });
+      // 200 ou 400 (falta de prompt válido) = função existe e a chave está OK
+      const online = res.status === 200 || res.status === 400;
+      return { online, models: ['llama3-8b-8192'], provider: 'groq' };
+    } catch {
+      return { online: false, models: [], provider: 'groq' };
+    }
+  }
 
-  // Fallback: Ollama local
+  // Dev: Ollama local
   try {
     const res = await fetch(`${OLLAMA_BASE}/api/tags`, { signal: AbortSignal.timeout(3000) });
     if (!res.ok) return { online: false, models: [], provider: 'ollama' };
@@ -23,30 +33,27 @@ export async function checkOllamaStatus() {
 }
 
 async function generate(prompt, options = {}) {
-  return useGroq ? generateGroq(prompt, options) : generateOllama(prompt, options);
+  return IS_PROD ? generateViaVercel(prompt, options) : generateOllama(prompt, options);
 }
 
-async function generateGroq(prompt, options = {}) {
-  const res = await fetch(GROQ_URL, {
+// Chama a Vercel Function /api/ai — chave fica no servidor, nunca no browser
+async function generateViaVercel(prompt, options = {}) {
+  const res = await fetch('/api/ai', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${GROQ_KEY}`,
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: GROQ_MODEL,
-      messages: [{ role: 'user', content: prompt }],
+      prompt,
       temperature: options.temperature ?? 0.15,
       max_tokens:  options.num_predict ?? 400,
     }),
-    signal: AbortSignal.timeout(30000),
+    signal: AbortSignal.timeout(35000),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err?.error?.message || `Groq HTTP ${res.status}`);
+    throw new Error(err?.error || `AI HTTP ${res.status}`);
   }
   const data = await res.json();
-  return data.choices?.[0]?.message?.content?.trim() ?? '';
+  return data.text ?? '';
 }
 
 async function generateOllama(prompt, options = {}) {
