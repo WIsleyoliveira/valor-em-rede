@@ -143,9 +143,13 @@ export default function LoginScreen({ onLogin }) {
           setError('Este e-mail já está cadastrado. Faça login.');
           return;
         }
+        if (err === 'CONFIRMAR_EMAIL') {
+          setError('✉️ Confirme seu e-mail antes de entrar. Verifique sua caixa de entrada.');
+          setMode('login');
+          return;
+        }
         if (err) { setError(err); return; }
         if (!user) {
-          // Confirmação de e-mail desativada no Supabase — não deve chegar aqui
           setError('Cadastro realizado! Faça login para continuar.');
           setMode('login');
           return;

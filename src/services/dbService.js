@@ -201,38 +201,38 @@ export async function signIn(email, password) {
 export async function signUp(name, email, password) {
   if (!isSupabaseEnabled) return { user: null, error: null, offline: true };
 
-  // Novos cadastros são SEMPRE membros — o gestor é único e pré-definido no banco
   const role = 'member';
 
+  // 1. Cria a conta no Supabase Auth
   const { data, error } = await supabase.auth.signUp({ email, password });
   if (error) return { user: null, error: translateAuthError(error.message) };
 
-  // Supabase retorna identities vazia quando e-mail já existe mas não confirmou
+  // E-mail já existe (identities vazia = duplicado não confirmado)
   if (data.user && data.user.identities && data.user.identities.length === 0) {
     return { user: null, error: 'EMAIL_JA_CADASTRADO' };
   }
 
-  // Se não tem sessão ainda (confirmação de e-mail ainda ativa no Supabase),
-  // faz login automático para obter sessão antes de inserir o perfil
-  if (!data.session) {
-    const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({ email, password });
-    if (loginError) {
-      // Cadastro foi criado mas não conseguiu logar — pede para fazer login manual
-      return { user: null, error: null };
-    }
-    data.session = loginData.session;
-    data.user    = loginData.user;
+  // 2. Força login imediato independente de confirmação de e-mail
+  const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({ email, password });
+
+  if (loginError) {
+    // Supabase ainda exige confirmação — avisa o usuário
+    return {
+      user: null,
+      error: 'CONFIRMAR_EMAIL',
+    };
   }
 
-  // Cria perfil na tabela members sempre como 'member'
+  const authUser = loginData.user;
+
+  // 3. Cria perfil na tabela members com sessão ativa
   const { data: profile, error: profileError } = await supabase
     .from('members')
-    .insert([{ auth_id: data.user.id, name, email: email.toLowerCase().trim(), role }])
+    .insert([{ auth_id: authUser.id, name, email: email.toLowerCase().trim(), role }])
     .select()
     .single();
 
   if (profileError) {
-    // Se for duplicata na tabela members
     if (profileError.message?.includes('duplicate') || profileError.code === '23505') {
       return { user: null, error: 'EMAIL_JA_CADASTRADO' };
     }
@@ -241,8 +241,8 @@ export async function signUp(name, email, password) {
 
   return {
     user: profile
-      ? { id: profile.id, name: profile.name, email: profile.email, role: profile.role, authId: data.user.id }
-      : { id: data.user.id, name, email, role, authId: data.user.id },
+      ? { id: profile.id, name: profile.name, email: profile.email, role: profile.role, authId: authUser.id }
+      : { id: authUser.id, name, email, role, authId: authUser.id },
     error: null,
   };
 }
