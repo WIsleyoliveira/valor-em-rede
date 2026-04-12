@@ -38,8 +38,13 @@ function migrateStorage() {
 }
 
 export function useStore() {
-  const [transactions, setTransactionsRaw] = useState(() => migrateStorage());
-  const [members, setMembersRaw] = useState(() => storage.getMembers());
+  // Inicia vazio se Supabase está ativo — dados virão do banco, não do cache local
+  const [transactions, setTransactionsRaw] = useState(() =>
+    isSupabaseEnabled ? [] : migrateStorage()
+  );
+  const [members, setMembersRaw] = useState(() =>
+    isSupabaseEnabled ? [] : storage.getMembers()
+  );
   const [donations, setDonationsRaw] = useState(() => storage.getDonations());
   const [payments, setPaymentsRaw] = useState(() => storage.getPayments());
   const [pending, setPendingRaw] = useState(() => storage.getPending());

@@ -45,10 +45,11 @@ export async function fetchTransactions() {
     .order('created_at', { ascending: false });
 
   if (error) {
-    console.error('[DB] fetchTransactions:', error.message);
+    console.error('[DB] fetchTransactions erro:', error.message, error.code);
     return storage.getTransactions(); // fallback
   }
 
+  console.log('[DB] fetchTransactions:', data.length, 'transações do Supabase');
   const mapped = data.map(toLocal);
   storage.saveTransactions(mapped); // atualiza cache offline
   return mapped;
