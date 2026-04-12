@@ -194,29 +194,38 @@ export function useStore() {
 
   // ── actions ──
   const addTransaction = useCallback(async (tx) => {
+    const localId = genId();
     const full = {
       ...tx,
-      id: tx.id || genId(),
-      synced: navigator.onLine,
+      id: localId,
+      synced: false,
       createdAt: new Date().toISOString(),
     };
-    // Otimista: adiciona na UI imediatamente
+    // Otimista: adiciona na UI imediatamente com ID local
     setTransactions((prev) => [full, ...prev]);
     if (!navigator.onLine) {
       setPending((prev) => [...prev, full]);
       return full;
     }
-    // Persiste no Supabase (fire-and-forget — localStorage já salvo acima)
-    insertTransaction(full).catch(() => setPending((prev) => [...prev, { ...full, synced: false }]));
+    // Persiste no Supabase e substitui o item local pelo retornado (UUID real)
+    try {
+      const saved = await insertTransaction(full);
+      if (saved && saved.id && saved.id !== localId) {
+        setTransactions((prev) => prev.map((t) => t.id === localId ? { ...saved, synced: true } : t));
+      }
+    } catch {
+      setPending((prev) => [...prev, { ...full, synced: false }]);
+    }
     return full;
   }, [setTransactions, setPending]);
 
   const addDonation = useCallback(async (don) => {
+    const localId = genId();
     const full = {
       ...don,
-      id: don.id || genId(),
+      id: localId,
       type: 'donation',
-      synced: navigator.onLine,
+      synced: false,
       name: don.name || don.donorName || (don.anon ? 'Anônimo' : 'Doador'),
       createdAt: new Date().toISOString(),
     };
@@ -226,17 +235,25 @@ export function useStore() {
       setPending((prev) => [...prev, full]);
       return full;
     }
-    insertTransaction(full).catch(() => setPending((prev) => [...prev, { ...full, synced: false }]));
+    try {
+      const saved = await insertTransaction(full);
+      if (saved && saved.id && saved.id !== localId) {
+        setTransactions((prev) => prev.map((t) => t.id === localId ? { ...saved, synced: true } : t));
+      }
+    } catch {
+      setPending((prev) => [...prev, { ...full, synced: false }]);
+    }
     return full;
   }, [setDonations, setTransactions, setPending]);
 
   const addPayment = useCallback(async (pay) => {
+    const localId = genId();
     const full = {
       ...pay,
-      id: pay.id || genId(),
+      id: localId,
       type: 'payment',
       status: 'confirmed',
-      synced: navigator.onLine,
+      synced: false,
       createdAt: new Date().toISOString(),
       name: pay.name || pay.memberName || 'Membro',
     };
@@ -246,7 +263,14 @@ export function useStore() {
       setPending((prev) => [...prev, full]);
       return full;
     }
-    insertTransaction(full).catch(() => setPending((prev) => [...prev, { ...full, synced: false }]));
+    try {
+      const saved = await insertTransaction(full);
+      if (saved && saved.id && saved.id !== localId) {
+        setTransactions((prev) => prev.map((t) => t.id === localId ? { ...saved, synced: true } : t));
+      }
+    } catch {
+      setPending((prev) => [...prev, { ...full, synced: false }]);
+    }
     return full;
   }, [setPayments, setTransactions, setPending]);
 
