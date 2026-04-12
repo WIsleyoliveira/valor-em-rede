@@ -52,6 +52,7 @@ export async function fetchTransactions() {
 export async function insertTransaction(tx) {
   if (!isSupabaseEnabled) {
     // modo offline puro
+    alert('⚠️ Supabase não está configurado! Salvando só localmente.');
     const current = storage.getTransactions();
     storage.saveTransactions([tx, ...current]);
     return tx;
@@ -64,7 +65,9 @@ export async function insertTransaction(tx) {
     .single();
 
   if (error) {
-    console.error('[DB] insertTransaction:', error.message);
+    console.error('[DB] insertTransaction:', error.message, error.code, error.details, error.hint);
+    // Mostra erro visível para debug
+    alert(`❌ Erro ao salvar transação:\n${error.message}\nCódigo: ${error.code}`);
     // Salva offline para sincronizar depois
     const current = storage.getTransactions();
     storage.saveTransactions([{ ...tx, synced: false }, ...current]);
