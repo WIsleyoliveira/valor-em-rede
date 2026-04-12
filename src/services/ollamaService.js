@@ -1,22 +1,60 @@
-// ─── Ollama Service — integração real com llama3.2:3b ──────────────────────
-const BASE = 'http://localhost:11434';
-const MODEL = 'llama3.2:3b';
+// ─── AI Service — Groq (produção) com fallback para Ollama local ─────────────
+const GROQ_URL   = 'https://api.groq.com/openai/v1/chat/completions';
+const GROQ_KEY   = import.meta.env.VITE_GROQ_API_KEY;
+const GROQ_MODEL = 'llama3-8b-8192';           // LLaMA 3 8B via Groq (gratuito)
+
+const OLLAMA_BASE  = 'http://localhost:11434';
+const OLLAMA_MODEL = 'llama3.2:3b';
+
+// Se VITE_GROQ_API_KEY estiver definida, usa Groq; caso contrário tenta Ollama local
+const useGroq = Boolean(GROQ_KEY);
 
 export async function checkOllamaStatus() {
+  // Groq configurado → sempre "online"
+  if (useGroq) return { online: true, models: [GROQ_MODEL], provider: 'groq' };
+
+  // Fallback: Ollama local
   try {
-    const res = await fetch(`${BASE}/api/tags`, { signal: AbortSignal.timeout(3000) });
-    if (!res.ok) return { online: false, models: [] };
+    const res = await fetch(`${OLLAMA_BASE}/api/tags`, { signal: AbortSignal.timeout(3000) });
+    if (!res.ok) return { online: false, models: [], provider: 'ollama' };
     const data = await res.json();
-    return { online: true, models: data.models?.map(m => m.name) ?? [] };
-  } catch { return { online: false, models: [] }; }
+    return { online: true, models: data.models?.map(m => m.name) ?? [], provider: 'ollama' };
+  } catch { return { online: false, models: [], provider: 'ollama' }; }
 }
 
 async function generate(prompt, options = {}) {
-  const res = await fetch(`${BASE}/api/generate`, {
+  return useGroq ? generateGroq(prompt, options) : generateOllama(prompt, options);
+}
+
+async function generateGroq(prompt, options = {}) {
+  const res = await fetch(GROQ_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${GROQ_KEY}`,
+    },
+    body: JSON.stringify({
+      model: GROQ_MODEL,
+      messages: [{ role: 'user', content: prompt }],
+      temperature: options.temperature ?? 0.15,
+      max_tokens:  options.num_predict ?? 400,
+    }),
+    signal: AbortSignal.timeout(30000),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.error?.message || `Groq HTTP ${res.status}`);
+  }
+  const data = await res.json();
+  return data.choices?.[0]?.message?.content?.trim() ?? '';
+}
+
+async function generateOllama(prompt, options = {}) {
+  const res = await fetch(`${OLLAMA_BASE}/api/generate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: MODEL,
+      model: OLLAMA_MODEL,
       prompt,
       stream: false,
       options: { temperature: 0.15, num_predict: 400, ...options },
