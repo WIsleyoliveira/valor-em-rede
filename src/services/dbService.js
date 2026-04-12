@@ -13,8 +13,13 @@ const toLocal = (row) => ({
   memberName: row.name,
 });
 
+// Verifica se é um UUID válido (formato padrão do Supabase)
+const isValidUUID = (id) =>
+  typeof id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+
 const toRow = (obj) => ({
-  id:          obj.id,
+  // Só envia o id se for UUID válido; caso contrário deixa o Supabase gerar
+  ...(isValidUUID(obj.id) ? { id: obj.id } : {}),
   type:        obj.type,
   name:        obj.name || obj.memberName || obj.donorName || null,
   description: obj.desc || obj.description || null,
@@ -52,7 +57,6 @@ export async function fetchTransactions() {
 export async function insertTransaction(tx) {
   if (!isSupabaseEnabled) {
     // modo offline puro
-    alert('⚠️ Supabase não está configurado! Salvando só localmente.');
     const current = storage.getTransactions();
     storage.saveTransactions([tx, ...current]);
     return tx;
@@ -65,9 +69,7 @@ export async function insertTransaction(tx) {
     .single();
 
   if (error) {
-    console.error('[DB] insertTransaction:', error.message, error.code, error.details, error.hint);
-    // Mostra erro visível para debug
-    alert(`❌ Erro ao salvar transação:\n${error.message}\nCódigo: ${error.code}`);
+    console.error('[DB] insertTransaction:', error.message, error.code);
     // Salva offline para sincronizar depois
     const current = storage.getTransactions();
     storage.saveTransactions([{ ...tx, synced: false }, ...current]);
