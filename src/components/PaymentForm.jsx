@@ -12,7 +12,6 @@ const PIX_KEY = 'associacao@valorem.rede';
 
 export default function PaymentForm({ onAdd, onShowReceipt, user }) {
   const [step, setStep] = useState(1);
-  const [phone, setPhone] = useState('');
   const [amount, setAmount] = useState('');
   const [method, setMethod] = useState(null);
   const [copied, setCopied] = useState(false);
@@ -25,10 +24,10 @@ export default function PaymentForm({ onAdd, onShowReceipt, user }) {
   const handleCopy = () => { navigator.clipboard.writeText(PIX_KEY); setCopied(true); setTimeout(() => setCopied(false), 2000); };
   const handleConfirm = () => {
     const value = parseMasked(amount);
-    const rec = { id: genId(), type: 'payment', name, email, phone, value, method: method.id, methodLabel: method.label, date: new Date().toISOString(), status: 'confirmed' };
+    const rec = { id: genId(), type: 'payment', name, email, value, method: method.id, methodLabel: method.label, date: new Date().toISOString(), status: 'confirmed' };
     onAdd(rec); setReceipt(rec); setStep(4);
   };
-  const reset = () => { setStep(1); setPhone(''); setAmount(''); setMethod(null); setReceipt(null); };
+  const reset = () => { setStep(1); setAmount(''); setMethod(null); setReceipt(null); };
 
   return (
     <div className="page">
@@ -66,7 +65,6 @@ export default function PaymentForm({ onAdd, onShowReceipt, user }) {
             <input className="form-input" value={email} readOnly
               style={{ background: 'var(--surface-alt)', color: 'var(--text-muted)', cursor: 'not-allowed' }} />
           </div>
-          <div><label className="form-label">Telefone (opcional)</label><input className="form-input" placeholder="(11) 99999-9999" value={phone} onChange={e => setPhone(e.target.value)} /></div>
           <div><label className="form-label">Valor da contribuição</label><input className="form-input" placeholder="R$ 0,00" value={amount} onChange={e => setAmount(maskMoney(e.target.value))} /></div>
           <button className="btn btn-primary" disabled={!amount} onClick={() => setStep(2)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center' }}>Próximo <ChevronRight size={16} /></button>
         </div>
@@ -93,7 +91,7 @@ export default function PaymentForm({ onAdd, onShowReceipt, user }) {
         <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700 }}>Confirme o pagamento</h3>
           <div style={{ background: 'var(--surface-alt)', borderRadius: 10, padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            {[['Nome', name], ['E-mail', email || '—'], ['Telefone', phone || '—'], ['Valor', fmt(parseMasked(amount))], ['Método', method.label]].map(([l, v]) => (
+            {[['Nome', name], ['E-mail', email || '—'], ['Valor', fmt(parseMasked(amount))], ['Método', method.label]].map(([l, v]) => (
               <div key={l} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}><span style={{ color: 'var(--text-muted)' }}>{l}</span><span style={{ fontWeight: 600 }}>{v}</span></div>
             ))}
           </div>
