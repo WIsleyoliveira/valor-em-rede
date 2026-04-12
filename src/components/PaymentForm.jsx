@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CreditCard, Zap, FileText, Banknote, CheckCircle, ChevronRight, ChevronLeft, User, Phone, Mail, Copy, Check, FileCheck } from 'lucide-react';
+import { CreditCard, Zap, FileText, Banknote, CheckCircle, ChevronRight, ChevronLeft, Copy, Check, FileCheck, Lock } from 'lucide-react';
 import { fmt, maskMoney, parseMasked, genId, fmtDate } from '../utils/format';
 
 const METHODS = [
@@ -10,15 +10,17 @@ const METHODS = [
 ];
 const PIX_KEY = 'associacao@valorem.rede';
 
-export default function PaymentForm({ onAdd, onShowReceipt }) {
+export default function PaymentForm({ onAdd, onShowReceipt, user }) {
   const [step, setStep] = useState(1);
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [amount, setAmount] = useState('');
   const [method, setMethod] = useState(null);
   const [copied, setCopied] = useState(false);
   const [receipt, setReceipt] = useState(null);
+
+  // Nome e email vêm do usuário logado — não podem ser alterados
+  const name = user?.name || '';
+  const email = user?.email || '';
 
   const handleCopy = () => { navigator.clipboard.writeText(PIX_KEY); setCopied(true); setTimeout(() => setCopied(false), 2000); };
   const handleConfirm = () => {
@@ -26,7 +28,7 @@ export default function PaymentForm({ onAdd, onShowReceipt }) {
     const rec = { id: genId(), type: 'payment', name, email, phone, value, method: method.id, methodLabel: method.label, date: new Date().toISOString(), status: 'confirmed' };
     onAdd(rec); setReceipt(rec); setStep(4);
   };
-  const reset = () => { setStep(1); setName(''); setEmail(''); setPhone(''); setAmount(''); setMethod(null); setReceipt(null); };
+  const reset = () => { setStep(1); setPhone(''); setAmount(''); setMethod(null); setReceipt(null); };
 
   return (
     <div className="page">
@@ -49,11 +51,24 @@ export default function PaymentForm({ onAdd, onShowReceipt }) {
       )}
       {step === 1 && (
         <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <div><label className="form-label">Nome completo</label><input className="form-input" placeholder="Seu nome" value={name} onChange={e => setName(e.target.value)} /></div>
-          <div><label className="form-label">E-mail</label><input className="form-input" type="email" placeholder="seu@email.com" value={email} onChange={e => setEmail(e.target.value)} /></div>
-          <div><label className="form-label">Telefone</label><input className="form-input" placeholder="(11) 99999-9999" value={phone} onChange={e => setPhone(e.target.value)} /></div>
+          {/* Nome e email bloqueados — vêm do login */}
+          <div>
+            <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+              Nome completo <Lock size={11} color="var(--text-muted)" />
+            </label>
+            <input className="form-input" value={name} readOnly
+              style={{ background: 'var(--surface-alt)', color: 'var(--text-muted)', cursor: 'not-allowed' }} />
+          </div>
+          <div>
+            <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+              E-mail <Lock size={11} color="var(--text-muted)" />
+            </label>
+            <input className="form-input" value={email} readOnly
+              style={{ background: 'var(--surface-alt)', color: 'var(--text-muted)', cursor: 'not-allowed' }} />
+          </div>
+          <div><label className="form-label">Telefone (opcional)</label><input className="form-input" placeholder="(11) 99999-9999" value={phone} onChange={e => setPhone(e.target.value)} /></div>
           <div><label className="form-label">Valor da contribuição</label><input className="form-input" placeholder="R$ 0,00" value={amount} onChange={e => setAmount(maskMoney(e.target.value))} /></div>
-          <button className="btn btn-primary" disabled={!name || !amount} onClick={() => setStep(2)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center' }}>Próximo <ChevronRight size={16} /></button>
+          <button className="btn btn-primary" disabled={!amount} onClick={() => setStep(2)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center' }}>Próximo <ChevronRight size={16} /></button>
         </div>
       )}
       {step === 2 && (

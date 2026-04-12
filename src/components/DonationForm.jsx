@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Heart, Repeat, EyeOff, Eye, CheckCircle, ChevronRight, Mail } from 'lucide-react';
+import { Heart, Repeat, EyeOff, Eye, CheckCircle, ChevronRight, Mail, Lock } from 'lucide-react';
 import { fmt, maskMoney, parseMasked, genId, fmtDate } from '../utils/format';
 
 const CAUSES = [
@@ -12,15 +12,17 @@ const CAUSES = [
 ];
 const QUICK = [20, 50, 100, 200];
 
-export default function DonationForm({ onAdd }) {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+export default function DonationForm({ onAdd, user }) {
   const [amount, setAmount] = useState('');
   const [cause, setCause] = useState('');
   const [anon, setAnon] = useState(false);
   const [recurrent, setRecurrent] = useState(false);
   const [message, setMessage] = useState('');
   const [done, setDone] = useState(null);
+
+  // Nome e email vêm do usuário logado — não podem ser alterados
+  const name = user?.name || '';
+  const email = user?.email || '';
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -29,7 +31,7 @@ export default function DonationForm({ onAdd }) {
     onAdd(rec);
     setDone(rec);
   };
-  const reset = () => { setName(''); setEmail(''); setAmount(''); setCause(''); setAnon(false); setRecurrent(false); setMessage(''); setDone(null); };
+  const reset = () => { setAmount(''); setCause(''); setAnon(false); setRecurrent(false); setMessage(''); setDone(null); };
 
   if (done) {
     return (
@@ -69,11 +71,20 @@ export default function DonationForm({ onAdd }) {
         </div>
 
         {!anon && (
-          <div><label className="form-label">Nome</label><input className="form-input" placeholder="Seu nome" value={name} onChange={e => setName(e.target.value)} /></div>
+          <div>
+            <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+              Nome <Lock size={11} color="var(--text-muted)" />
+            </label>
+            <input className="form-input" value={name} readOnly
+              style={{ background: 'var(--surface-alt)', color: 'var(--text-muted)', cursor: 'not-allowed' }} />
+          </div>
         )}
         <div>
-          <label className="form-label"><Mail size={13} style={{ verticalAlign: 'middle', marginRight: 4 }} />E-mail (opcional)</label>
-          <input className="form-input" type="email" placeholder="para recibos e atualizações" value={email} onChange={e => setEmail(e.target.value)} />
+          <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+            <Mail size={13} />E-mail <Lock size={11} color="var(--text-muted)" />
+          </label>
+          <input className="form-input" value={email} readOnly
+            style={{ background: 'var(--surface-alt)', color: 'var(--text-muted)', cursor: 'not-allowed' }} />
         </div>
 
         <div>
@@ -110,7 +121,7 @@ export default function DonationForm({ onAdd }) {
           </div>
         </div>
 
-        <button className="btn btn-primary" type="submit" disabled={!amount || !cause || (!anon && !name)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+        <button className="btn btn-primary" type="submit" disabled={!amount || !cause} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
           <Heart size={16} /> Confirmar doação
         </button>
       </form>
