@@ -228,7 +228,14 @@ export async function signUp(name, email, password) {
   }
 
   return {
-    user: { id: profile?.id, name, email, role, authId: data.user.id },
+    // Com confirmação de e-mail DESATIVADA no Supabase, data.session já existe
+    // e o usuário entra direto. profile pode ser null se o insert falhou mas
+    // retornamos o mínimo para o onLogin funcionar.
+    user: profile
+      ? { id: profile.id, name: profile.name, email: profile.email, role: profile.role, authId: data.user.id }
+      : data.session
+        ? { id: data.user.id, name, email, role, authId: data.user.id }
+        : null,
     error: null,
   };
 }
