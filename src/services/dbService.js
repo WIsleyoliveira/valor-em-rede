@@ -212,6 +212,18 @@ export async function signUp(name, email, password) {
     return { user: null, error: 'EMAIL_JA_CADASTRADO' };
   }
 
+  // Se não tem sessão ainda (confirmação de e-mail ainda ativa no Supabase),
+  // faz login automático para obter sessão antes de inserir o perfil
+  if (!data.session) {
+    const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({ email, password });
+    if (loginError) {
+      // Cadastro foi criado mas não conseguiu logar — pede para fazer login manual
+      return { user: null, error: null };
+    }
+    data.session = loginData.session;
+    data.user    = loginData.user;
+  }
+
   // Cria perfil na tabela members sempre como 'member'
   const { data: profile, error: profileError } = await supabase
     .from('members')
@@ -228,14 +240,9 @@ export async function signUp(name, email, password) {
   }
 
   return {
-    // Com confirmação de e-mail DESATIVADA no Supabase, data.session já existe
-    // e o usuário entra direto. profile pode ser null se o insert falhou mas
-    // retornamos o mínimo para o onLogin funcionar.
     user: profile
       ? { id: profile.id, name: profile.name, email: profile.email, role: profile.role, authId: data.user.id }
-      : data.session
-        ? { id: data.user.id, name, email, role, authId: data.user.id }
-        : null,
+      : { id: data.user.id, name, email, role, authId: data.user.id },
     error: null,
   };
 }
