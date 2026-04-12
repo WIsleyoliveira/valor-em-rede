@@ -48,12 +48,30 @@ export function useStore() {
   useEffect(() => {
     if (!isSupabaseEnabled) return;
 
-    fetchTransactions().then((data) => {
-      if (data && data.length > 0) setTransactionsRaw(data);
-    });
-    fetchMembers().then((data) => {
-      if (data && data.length > 0) setMembersRaw(data);
-    });
+    const load = () => {
+      fetchTransactions().then((data) => {
+        if (data && data.length >= 0) setTransactionsRaw(data);
+      });
+      fetchMembers().then((data) => {
+        if (data && data.length >= 0) setMembersRaw(data);
+      });
+    };
+
+    load(); // carrega ao montar
+
+    // Polling a cada 30s — garante sincronia mesmo sem Realtime ativo
+    const interval = setInterval(load, 30000);
+
+    // Recarrega quando a janela volta ao foco (usuário troca de aba e volta)
+    window.addEventListener('focus', load);
+    // Recarrega quando volta a ficar online
+    window.addEventListener('online', load);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', load);
+      window.removeEventListener('online', load);
+    };
   }, []);
 
   // ── Realtime: atualiza a lista quando outro usuário insere algo ──────────
