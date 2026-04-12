@@ -183,12 +183,30 @@ export async function signIn(email, password) {
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) return { user: null, error: translateAuthError(error.message) };
 
-  // Busca perfil do membro
-  const { data: profile } = await supabase
+  // Busca perfil pelo auth_id
+  let { data: profile } = await supabase
     .from('members')
     .select('*')
     .eq('auth_id', data.user.id)
-    .single();
+    .maybeSingle();
+
+  // Fallback: busca pelo e-mail (caso auth_id não esteja vinculado ainda)
+  if (!profile) {
+    const { data: profileByEmail } = await supabase
+      .from('members')
+      .select('*')
+      .eq('email', email.toLowerCase().trim())
+      .maybeSingle();
+
+    if (profileByEmail) {
+      profile = profileByEmail;
+      // Atualiza auth_id para futuras consultas
+      await supabase
+        .from('members')
+        .update({ auth_id: data.user.id })
+        .eq('id', profileByEmail.id);
+    }
+  }
 
   return {
     user: profile
