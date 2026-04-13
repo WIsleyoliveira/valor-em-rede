@@ -18,7 +18,6 @@ import SyncToast from './components/SyncToast';
 import { useStore } from './hooks/useStore';
 import { useOllama } from './hooks/useOllama';
 import { useSync, requestNotificationPermission, sendLocalNotification } from './hooks/useSync';
-import { autoSendToAmazonPeople } from './services/amazonPeopleService';
 
 // Nav configs per role
 const MEMBER_NAV = [
@@ -82,18 +81,6 @@ export default function App() {
 
     if (!isOnline) {
       showToast('Salvo localmente. Será sincronizado quando a internet voltar.', 'info');
-    }
-
-    // Auto-send to Amazon People on every manager action (fire-and-forget)
-    if (user?.role === 'manager') {
-      const actionLabel = rec.type === 'payment' ? 'add_payment' : rec.type === 'donation' ? 'add_donation' : 'add_expense';
-      autoSendToAmazonPeople(
-        [...transactions, rec],
-        { ...totals, out: totals.out + (rec.type === 'expense' ? rec.value : 0), in: totals.in + (rec.type !== 'expense' ? rec.value : 0), balance: totals.balance + (rec.type !== 'expense' ? rec.value : -rec.value) },
-        [],
-        user,
-        actionLabel
-      );
     }
   };
 
