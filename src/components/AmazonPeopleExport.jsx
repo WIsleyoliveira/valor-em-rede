@@ -1,8 +1,7 @@
 import { useState } from 'react';
-import { Upload, Shield, FileBarChart, RefreshCw, CheckCircle, AlertCircle, Copy, Check, Brain, Activity, Mail, Eye, X } from 'lucide-react';
+import { Upload, Shield, FileBarChart, RefreshCw, CheckCircle, AlertCircle, Copy, Check, Brain, Mail, Eye, X } from 'lucide-react';
 import { fmt, fmtDate } from '../utils/format';
 import { useOllama } from '../hooks/useOllama';
-import { getAmazonPeopleLog } from '../services/amazonPeopleService';
 import { sendReportByEmail, AMAZON_PEOPLE_EMAIL } from '../services/emailService';
 
 function buildPayload(transactions, totals, members, user, narrative) {
@@ -48,7 +47,6 @@ export default function AmazonPeopleExport({ transactions, totals, members, user
   const [status, setStatus] = useState(null);
   const [copied, setCopied] = useState(false);
   const [json, setJson] = useState('');
-  const [autoLog] = useState(() => getAmazonPeopleLog());
   const { fetchNarrativeReport, narrativeReport, loadingReport } = useOllama();
 
   // e-mail state
@@ -267,30 +265,6 @@ export default function AmazonPeopleExport({ transactions, totals, members, user
         </button>
       </div>
 
-      {/* Auto-send log */}
-      {autoLog.length > 0 && (
-        <div className="card" style={{ marginTop: '1rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-            <Activity size={16} color="var(--primary)" />
-            <span style={{ fontWeight: 600 }}>Envios automáticos</span>
-            <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: 'var(--text-muted)' }}>{autoLog.length} registro(s)</span>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', maxHeight: 220, overflow: 'auto' }}>
-            {autoLog.slice(0, 15).map(entry => (
-              <div key={entry.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.6rem', background: 'var(--surface-alt)', borderRadius: 8, fontSize: '0.78rem' }}>
-                <div style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: entry.status === 'success' ? '#059669' : entry.status === 'error' ? '#ef4444' : '#f59e0b' }} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{entry.action?.replace(/_/g, ' ')} · {entry.manager}</div>
-                  <div style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}>{new Date(entry.timestamp).toLocaleString('pt-BR')} · {entry.recordCount} registros</div>
-                </div>
-                <div style={{ color: entry.status === 'success' ? '#059669' : entry.status === 'error' ? '#ef4444' : '#f59e0b', fontWeight: 600, flexShrink: 0 }}>
-                  {entry.status === 'success' ? 'OK' : entry.status === 'error' ? 'ERRO' : '...'}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
