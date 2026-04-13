@@ -87,6 +87,15 @@ export default function Dashboard({ totals, categoryBreakdown, memberStats }) {
               <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.5rem', textAlign: 'center' }}>
                 {memberStats.paid} pagaram este mês
               </p>
+              {/* Lista de quem pagou */}
+              <div style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.4rem', maxHeight: 160, overflowY: 'auto' }}>
+                {memberStats.list.map((m) => (
+                  <div key={m.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', padding: '0.3rem 0.5rem', borderRadius: 6, background: 'var(--surface-alt)' }}>
+                    <span style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{m.name}</span>
+                    <span style={{ color: '#059669', fontWeight: 600 }}>{fmt(m.total)}</span>
+                  </div>
+                ))}
+              </div>
             </>
           )}
         </div>

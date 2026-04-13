@@ -184,8 +184,8 @@ export function useStore() {
   }, [transactions]);
 
   const memberStats = useMemo(() => {
+    // Lista de membros únicos que já fizeram algum pagamento
     const map = {};
-    // Count from both income transactions and direct payments
     const incomeTxs = transactions.filter((t) => t.type === 'income' || t.type === 'payment');
     incomeTxs.forEach((t) => {
       const name = t.name || t.memberName || 'Desconhecido';
@@ -194,7 +194,22 @@ export function useStore() {
       map[name].count += 1;
       if (t.date > map[name].lastDate) map[name].lastDate = t.date;
     });
-    return Object.values(map).sort((a, b) => b.total - a.total);
+    const list = Object.values(map).sort((a, b) => b.total - a.total);
+
+    // Membros que pagaram no mês atual
+    const now = new Date();
+    const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const paidThisMonth = new Set(
+      incomeTxs
+        .filter((t) => (t.date || t.createdAt || '').slice(0, 7) === thisMonth)
+        .map((t) => t.name || t.memberName || 'Desconhecido')
+    );
+
+    return {
+      list,                        // array com detalhes de cada membro
+      total: list.length,          // total de membros distintos
+      paid: paidThisMonth.size,    // quantos pagaram este mês
+    };
   }, [transactions]);
 
   // ── actions ──
