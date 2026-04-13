@@ -38,42 +38,27 @@ const MANAGER_NAV = [
 ];
 
 export default function App() {
-  const [user, setUser] = useState(null);
-  const [authLoading, setAuthLoading] = useState(isSupabaseEnabled);
-  const [page, setPage] = useState(null);
+  // Restaura user/page do localStorage ANTES de qualquer render (síncrono)
+  const [user, setUser] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('ver_user') || 'null'); } catch { return null; }
+  });
+  const [page, setPage] = useState(() => localStorage.getItem('ver_page') || null);
   const [receiptTx, setReceiptTx] = useState(null);
   const { transactions, totals, categoryBreakdown, memberStats, addTransaction, addDonation, addPayment, pending, setPending, setTransactions } = useStore();
   const { status: ollamaStatus, recommendations, loadingRec, fetchRecommendations } = useOllama();
   const { isOnline, syncing, toast, showToast, syncPending } = useSync(pending, setPending, setTransactions);
 
-  // Restaura sessão ao recarregar — lê perfil do localStorage, sem busca ao banco
+  // Valida sessão do Supabase em background (sem bloquear a UI)
   useEffect(() => {
     if (!isSupabaseEnabled) return;
-
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        // Tenta restaurar perfil salvo localmente (salvo no handleLogin)
-        const cachedProfile = localStorage.getItem('ver_user');
-        if (cachedProfile) {
-          try {
-            const restoredUser = JSON.parse(cachedProfile);
-            setUser(restoredUser);
-            const savedPage = localStorage.getItem('ver_page');
-            const validPages = restoredUser.role === 'manager'
-              ? ['dashboard', 'expense', 'ai', 'export', 'transparency', 'history']
-              : ['payment', 'donation', 'history', 'transparency', 'expenses'];
-            setPage(savedPage && validPages.includes(savedPage)
-              ? savedPage
-              : restoredUser.role === 'manager' ? 'dashboard' : 'payment'
-            );
-          } catch (_) { /* perfil corrompido, vai pro login */ }
-        }
-      } else {
-        // Sem sessão — limpa cache e vai pro login
+      if (!session?.user) {
+        // Token expirado — limpa cache e manda pro login
         localStorage.removeItem('ver_user');
         localStorage.removeItem('ver_page');
+        setUser(null);
+        setPage(null);
       }
-      setAuthLoading(false);
     });
   }, []);
 
@@ -109,16 +94,6 @@ export default function App() {
     setUser(null);
     setPage(null);
   };
-
-  // Tela de carregamento enquanto verifica sessão (rápido — só getSession)
-  if (authLoading) return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: 'var(--bg)' }}>
-      <div style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
-        <div style={{ width: 40, height: 40, border: '3px solid var(--border)', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 1rem' }} />
-        <div style={{ fontSize: '0.9rem' }}>Carregando...</div>
-      </div>
-    </div>
-  );
 
   // Login gate
   if (!user) return <LoginScreen onLogin={handleLogin} />;
