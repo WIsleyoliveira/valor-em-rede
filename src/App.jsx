@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import {
   LayoutDashboard, CreditCard, Heart, Receipt, History,
   Eye, Upload, Brain, Building2, LogOut
@@ -42,75 +42,39 @@ export default function App() {
   const [authLoading, setAuthLoading] = useState(isSupabaseEnabled);
   const [page, setPage] = useState(null);
   const [receiptTx, setReceiptTx] = useState(null);
-  const profileLoaded = useRef(false); // garante que só busca o perfil uma vez
   const { transactions, totals, categoryBreakdown, memberStats, addTransaction, addDonation, addPayment, pending, setPending, setTransactions } = useStore();
   const { status: ollamaStatus, recommendations, loadingRec, fetchRecommendations } = useOllama();
   const { isOnline, syncing, toast, showToast, syncPending } = useSync(pending, setPending, setTransactions);
 
-  // Restaura sessão do Supabase ao recarregar a página
+  // Restaura sessão ao recarregar — lê perfil do localStorage, sem busca ao banco
   useEffect(() => {
     if (!isSupabaseEnabled) return;
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('[Auth]', event, session?.user?.email ?? 'no-session');
-
-      // Logout ou sem sessão
-      if (!session?.user) {
-        profileLoaded.current = false;
-        setUser(null);
-        setAuthLoading(false);
-        return;
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        // Tenta restaurar perfil salvo localmente (salvo no handleLogin)
+        const cachedProfile = localStorage.getItem('ver_user');
+        if (cachedProfile) {
+          try {
+            const restoredUser = JSON.parse(cachedProfile);
+            setUser(restoredUser);
+            const savedPage = localStorage.getItem('ver_page');
+            const validPages = restoredUser.role === 'manager'
+              ? ['dashboard', 'expense', 'ai', 'export', 'transparency', 'history']
+              : ['payment', 'donation', 'history', 'transparency', 'expenses'];
+            setPage(savedPage && validPages.includes(savedPage)
+              ? savedPage
+              : restoredUser.role === 'manager' ? 'dashboard' : 'payment'
+            );
+          } catch (_) { /* perfil corrompido, vai pro login */ }
+        }
+      } else {
+        // Sem sessão — limpa cache e vai pro login
+        localStorage.removeItem('ver_user');
+        localStorage.removeItem('ver_page');
       }
-
-      // Já processou esta sessão (evita duplo fetch ao navegar)
-      if (profileLoaded.current) {
-        setAuthLoading(false);
-        return;
-      }
-      profileLoaded.current = true;
-
-      // Busca perfil do membro no banco
-      let { data: profile } = await supabase
-        .from('members')
-        .select('*')
-        .eq('auth_id', session.user.id)
-        .maybeSingle();
-
-      if (!profile) {
-        const { data: byEmail } = await supabase
-          .from('members')
-          .select('*')
-          .eq('email', session.user.email)
-          .maybeSingle();
-        profile = byEmail;
-      }
-
-      const restoredUser = profile
-        ? { id: profile.id, name: profile.name, email: profile.email, role: profile.role, authId: session.user.id }
-        : { id: session.user.id, name: session.user.email, email: session.user.email, role: 'member', authId: session.user.id };
-
-      setUser(restoredUser);
-
-      // Restaura a página salva no localStorage
-      const savedPage = localStorage.getItem('ver_page');
-      const validPages = restoredUser.role === 'manager'
-        ? ['dashboard', 'expense', 'ai', 'export', 'transparency', 'history']
-        : ['payment', 'donation', 'history', 'transparency', 'expenses'];
-      setPage(savedPage && validPages.includes(savedPage)
-        ? savedPage
-        : restoredUser.role === 'manager' ? 'dashboard' : 'payment'
-      );
-
       setAuthLoading(false);
     });
-
-    // Timeout de segurança: se nenhum evento chegar em 5s, libera o loading
-    const timeout = setTimeout(() => setAuthLoading(false), 5000);
-
-    return () => {
-      subscription.unsubscribe();
-      clearTimeout(timeout);
-    };
   }, []);
 
   // Salva a página atual no localStorage sempre que mudar
@@ -119,9 +83,9 @@ export default function App() {
     localStorage.setItem('ver_page', pageId);
   };
 
-  // Login manual
+  // Login manual — salva perfil no localStorage para restore rápido
   const handleLogin = (u) => {
-    profileLoaded.current = true; // marca como processado para não duplicar
+    localStorage.setItem('ver_user', JSON.stringify(u));
     setUser(u);
     const defaultPage = u.role === 'manager' ? 'dashboard' : 'payment';
     setPage(defaultPage);
@@ -137,12 +101,21 @@ export default function App() {
     }, 1500);
   };
 
-  // Tela de carregamento enquanto verifica sessão
+  // Logout — limpa tudo
+  const handleLogout = async () => {
+    localStorage.removeItem('ver_user');
+    localStorage.removeItem('ver_page');
+    if (isSupabaseEnabled) await supabase.auth.signOut();
+    setUser(null);
+    setPage(null);
+  };
+
+  // Tela de carregamento enquanto verifica sessão (rápido — só getSession)
   if (authLoading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: 'var(--bg)' }}>
       <div style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
         <div style={{ width: 40, height: 40, border: '3px solid var(--border)', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 1rem' }} />
-        <div style={{ fontSize: '0.9rem' }}>Restaurando sessão...</div>
+        <div style={{ fontSize: '0.9rem' }}>Carregando...</div>
       </div>
     </div>
   );
@@ -233,11 +206,7 @@ export default function App() {
           <button
             className="btn btn-ghost"
             style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '0.4rem', justifyContent: 'flex-start', padding: '0.4rem 0.5rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}
-            onClick={async () => {
-              localStorage.removeItem('ver_page');
-              if (isSupabaseEnabled) await supabase.auth.signOut();
-              setUser(null);
-            }}
+            onClick={handleLogout}
           >
             <LogOut size={15} /> Sair
           </button>
@@ -249,11 +218,7 @@ export default function App() {
         <Header
           user={user}
           ollamaStatus={ollamaStatus}
-          onLogout={async () => {
-              localStorage.removeItem('ver_page');
-              if (isSupabaseEnabled) await supabase.auth.signOut();
-              setUser(null);
-            }}
+          onLogout={handleLogout}
           isOnline={isOnline}
           pendingCount={pending.length}
           syncing={syncing}
