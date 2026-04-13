@@ -18,6 +18,7 @@ import SyncToast from './components/SyncToast';
 import { useStore } from './hooks/useStore';
 import { useOllama } from './hooks/useOllama';
 import { useSync, requestNotificationPermission, sendLocalNotification } from './hooks/useSync';
+import { supabase, isSupabaseEnabled } from './services/supabase';
 
 // Nav configs per role
 const MEMBER_NAV = [
@@ -38,16 +39,68 @@ const MANAGER_NAV = [
 
 export default function App() {
   const [user, setUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(isSupabaseEnabled); // espera checar sessão
   const [page, setPage] = useState(null);
   const [receiptTx, setReceiptTx] = useState(null);
   const { transactions, totals, categoryBreakdown, memberStats, addTransaction, addDonation, addPayment, pending, setPending, setTransactions } = useStore();
   const { status: ollamaStatus, recommendations, loadingRec, fetchRecommendations } = useOllama();
   const { isOnline, syncing, toast, showToast, syncPending } = useSync(pending, setPending, setTransactions);
 
+  // Restaura sessão do Supabase ao recarregar a página
+  useEffect(() => {
+    if (!isSupabaseEnabled) return;
+
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session?.user) {
+        // Busca perfil do membro no banco
+        let { data: profile } = await supabase
+          .from('members')
+          .select('*')
+          .eq('auth_id', session.user.id)
+          .maybeSingle();
+
+        if (!profile) {
+          const { data: profileByEmail } = await supabase
+            .from('members')
+            .select('*')
+            .eq('email', session.user.email)
+            .maybeSingle();
+          profile = profileByEmail;
+        }
+
+        const restoredUser = profile
+          ? { id: profile.id, name: profile.name, email: profile.email, role: profile.role, authId: session.user.id }
+          : { id: session.user.id, name: session.user.email, email: session.user.email, role: 'member', authId: session.user.id };
+
+        setUser(restoredUser);
+
+        // Restaura a página salva, validando se é permitida para o role
+        const savedPage = sessionStorage.getItem('ver_page');
+        const validPages = restoredUser.role === 'manager'
+          ? ['dashboard','expense','ai','export','transparency','history']
+          : ['payment','donation','history','transparency','expenses'];
+        if (savedPage && validPages.includes(savedPage)) {
+          setPage(savedPage);
+        } else {
+          setPage(restoredUser.role === 'manager' ? 'dashboard' : 'payment');
+        }
+      }
+      setAuthLoading(false);
+    });
+  }, []);
+
+  // Salva a página atual no sessionStorage sempre que mudar
+  const navigateTo = (pageId) => {
+    setPage(pageId);
+    sessionStorage.setItem('ver_page', pageId);
+  };
+
   // Pede permissão de notificação ao fazer login
   const handleLogin = (u) => {
     setUser(u);
-    setPage(u.role === 'manager' ? 'dashboard' : 'payment');
+    const defaultPage = u.role === 'manager' ? 'dashboard' : 'payment';
+    setPage(defaultPage);
+    sessionStorage.setItem('ver_page', defaultPage);
     requestNotificationPermission();
     // Notificação de boas-vindas
     setTimeout(() => {
@@ -59,6 +112,16 @@ export default function App() {
       );
     }, 1500);
   };
+
+  // Tela de carregamento enquanto verifica sessão
+  if (authLoading) return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: 'var(--bg)' }}>
+      <div style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+        <div style={{ width: 40, height: 40, border: '3px solid var(--border)', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 1rem' }} />
+        <div style={{ fontSize: '0.9rem' }}>Restaurando sessão...</div>
+      </div>
+    </div>
+  );
 
   // Login gate
   if (!user) return <LoginScreen onLogin={handleLogin} />;
@@ -125,7 +188,7 @@ export default function App() {
             <button
               key={id}
               className={`nav-item${activePage === id ? ' active' : ''}`}
-              onClick={() => { setPage(id); setSidebarOpen(false); }}
+              onClick={() => navigateTo(id)}
             >
               <Icon size={18} />
               <span>{label}</span>
@@ -146,7 +209,11 @@ export default function App() {
           <button
             className="btn btn-ghost"
             style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '0.4rem', justifyContent: 'flex-start', padding: '0.4rem 0.5rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}
-            onClick={() => setUser(null)}
+            onClick={async () => {
+              sessionStorage.removeItem('ver_page');
+              if (isSupabaseEnabled) await supabase.auth.signOut();
+              setUser(null);
+            }}
           >
             <LogOut size={15} /> Sair
           </button>
@@ -158,7 +225,11 @@ export default function App() {
         <Header
           user={user}
           ollamaStatus={ollamaStatus}
-          onLogout={() => setUser(null)}
+          onLogout={async () => {
+              sessionStorage.removeItem('ver_page');
+              if (isSupabaseEnabled) await supabase.auth.signOut();
+              setUser(null);
+            }}
           isOnline={isOnline}
           pendingCount={pending.length}
           syncing={syncing}
@@ -175,7 +246,7 @@ export default function App() {
               <button
                 key={id}
                 className={`mobile-nav-item${activePage === id ? ' active' : ''}`}
-                onClick={() => setPage(id)}
+                onClick={() => navigateTo(id)}
               >
                 <Icon size={20} />
                 <span>{label}</span>
