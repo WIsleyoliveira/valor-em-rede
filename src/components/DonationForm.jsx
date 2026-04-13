@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Heart, Repeat, EyeOff, Eye, CheckCircle, ChevronRight, Mail, Lock } from 'lucide-react';
-import { fmt, maskMoney, parseMasked, genId, fmtDate } from '../utils/format';
+import { fmt, maskMoney, parseMasked, genId, fmtDate, todayLocal } from '../utils/format';
 
 const CAUSES = [
   { id: 'educacao', label: 'Educação', color: '#3b82f6' },
@@ -27,7 +27,7 @@ export default function DonationForm({ onAdd, user }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     const value = parseMasked(amount);
-    const rec = { id: genId(), type: 'donation', name: anon ? 'Anônimo' : name, email, value, cause, anon, recurrent, message, date: new Date().toISOString() };
+    const rec = { id: genId(), type: 'donation', name: anon ? 'Anônimo' : name, email, value, cause, anon, recurrent, message, date: todayLocal() };
     onAdd(rec);
     setDone(rec);
   };

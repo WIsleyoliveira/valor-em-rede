@@ -14,6 +14,15 @@ export const fmtDateShort = (iso) =>
 
 export const genId = () => `${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
 
+// Retorna a data de hoje no fuso local em formato YYYY-MM-DD (evita salto de dia por UTC)
+export const todayLocal = () => {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
+
 export const parseValue = (str) => parseFloat(String(str).replace(/\./g, '').replace(',', '.'));
 
 export const maskMoney = (str) => {

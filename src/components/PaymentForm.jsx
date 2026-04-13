@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { CreditCard, Zap, FileText, Banknote, CheckCircle, ChevronRight, ChevronLeft, Copy, Check, FileCheck, Lock } from 'lucide-react';
-import { fmt, maskMoney, parseMasked, genId, fmtDate } from '../utils/format';
+import { fmt, maskMoney, parseMasked, genId, fmtDate, todayLocal } from '../utils/format';
 
 const METHODS = [
   { id: 'pix', label: 'PIX', icon: Zap, color: '#059669', desc: 'Instantâneo e gratuito' },
@@ -24,7 +24,7 @@ export default function PaymentForm({ onAdd, onShowReceipt, user }) {
   const handleCopy = () => { navigator.clipboard.writeText(PIX_KEY); setCopied(true); setTimeout(() => setCopied(false), 2000); };
   const handleConfirm = () => {
     const value = parseMasked(amount);
-    const rec = { id: genId(), type: 'payment', name, email, value, method: method.id, methodLabel: method.label, date: new Date().toISOString(), status: 'confirmed' };
+    const rec = { id: genId(), type: 'payment', name, email, value, method: method.id, methodLabel: method.label, date: todayLocal(), status: 'confirmed' };
     onAdd(rec); setReceipt(rec); setStep(4);
   };
   const reset = () => { setStep(1); setAmount(''); setMethod(null); setReceipt(null); };

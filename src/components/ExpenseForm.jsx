@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Receipt, Tag, AlertTriangle, Sparkles, CheckCircle, Loader, FileCheck } from 'lucide-react';
-import { fmt, maskMoney, parseMasked, genId, fmtDate } from '../utils/format';
+import { fmt, maskMoney, parseMasked, genId, fmtDate, todayLocal } from '../utils/format';
 import { useOllama } from '../hooks/useOllama';
 
 const URGENCY_COLOR = { alta: '#ef4444', media: '#f59e0b', baixa: '#059669' };
@@ -9,7 +9,7 @@ export default function ExpenseForm({ onAdd, onShowReceipt }) {
   const [desc, setDesc] = useState('');
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState('');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(todayLocal());
   const [note, setNote] = useState('');
   const [done, setDone] = useState(null);
   const { analyzeExpense, suggestion, loadingAnalysis, clearSuggestion } = useOllama();
@@ -31,11 +31,12 @@ export default function ExpenseForm({ onAdd, onShowReceipt }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     const value = parseMasked(amount);
-    const rec = { id: genId(), type: 'expense', desc, value, category: category || suggestion?.categoria || 'Outros', date: new Date(date).toISOString(), note, aiSuggestion: suggestion };
+    // Salva como "YYYY-MM-DD" puro (sem conversão UTC) para evitar salto de dia
+    const rec = { id: genId(), type: 'expense', desc, value, category: category || suggestion?.categoria || 'Outros', date, note, aiSuggestion: suggestion };
     onAdd(rec);
     setDone(rec);
   };
-  const reset = () => { setDesc(''); setAmount(''); setCategory(''); setDate(new Date().toISOString().split('T')[0]); setNote(''); setDone(null); clearSuggestion(); };
+  const reset = () => { setDesc(''); setAmount(''); setCategory(''); setDate(todayLocal()); setNote(''); setDone(null); clearSuggestion(); };
 
   if (done) return (
     <div className="page">
