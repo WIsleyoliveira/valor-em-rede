@@ -124,7 +124,7 @@ export default function App() {
   const renderPage = () => {
     switch (activePage) {
       case 'dashboard':   return <Dashboard totals={totals} categoryBreakdown={categoryBreakdown} memberStats={memberStats} />;
-      case 'payment':     return <PaymentForm onAdd={handleAdd} onShowReceipt={setReceiptTx} user={user} />;
+      case 'payment':     return <PaymentForm onAdd={handleAdd} onShowReceipt={setReceiptTx} user={user} transactions={transactions} />;
       case 'donation':    return <DonationForm onAdd={handleAdd} user={user} />;
       case 'expense':     return <ExpenseForm onAdd={handleAdd} onShowReceipt={setReceiptTx} />;
       case 'history':     return <HistoryView transactions={transactions} onShowReceipt={setReceiptTx} />;

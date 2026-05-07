@@ -4,3 +4,10 @@
 - [x] Remover dependência de confirmação por `localStorage`/`pagar.html` no fluxo principal
 - [x] Validar build local e checar status git
 - [ ] Commitar correção e subir na `main`
+
+## Ajuste MVP (sem ASAAS) + contador de pagamentos aprovados
+- [x] Refatorar `api/pix.js` para mockar criação de cobrança PIX sem `ASAAS_API_KEY`
+- [x] Refatorar `api/pix-status.js` para retorno simulado de aprovação sem gateway externo
+- [x] Atualizar `src/App.jsx` para passar `transactions` ao `PaymentForm`
+- [x] Atualizar `src/components/PaymentForm.jsx` para exibir quantidade exata já paga após aprovação
+- [ ] Executar teste de caminho crítico (PIX + manual) e validar build

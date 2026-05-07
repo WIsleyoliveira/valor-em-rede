@@ -9,11 +9,12 @@ const METHODS = [
   { id: 'dinheiro', label: 'Dinheiro', icon: Banknote,   color: '#f59e0b', desc: 'Pagamento presencial'    },
 ];
 
-export default function PaymentForm({ onAdd, onShowReceipt, user }) {
+export default function PaymentForm({ onAdd, onShowReceipt, user, transactions = [] }) {
   const [step, setStep]     = useState(1);
   const [amount, setAmount] = useState('');
   const [method, setMethod] = useState(null);
   const [receipt, setReceipt] = useState(null);
+  const [paidCount, setPaidCount] = useState(0);
 
   // ── Estados do PIX ───────────────────────────────────────────────────────
   const [pixId, setPixId]       = useState('');
@@ -122,7 +123,19 @@ export default function PaymentForm({ onAdd, onShowReceipt, user }) {
       status: 'confirmed',
       pix_id: idPix || pixId,
     };
+
+    const normalizedEmail = (email || '').trim().toLowerCase();
+    const normalizedName = (name || '').trim().toLowerCase();
+    const previousPaidCount = (transactions || []).filter((t) => {
+      if (t.type !== 'payment') return false;
+      const tEmail = (t.email || '').trim().toLowerCase();
+      const tName = (t.name || '').trim().toLowerCase();
+      if (normalizedEmail) return tEmail === normalizedEmail;
+      return normalizedName ? tName === normalizedName : false;
+    }).length;
+
     onAdd(rec);
+    setPaidCount(previousPaidCount + 1);
     setReceipt(rec);
     setStep(4);
   }
@@ -147,6 +160,7 @@ export default function PaymentForm({ onAdd, onShowReceipt, user }) {
     setPixLink('');
     setPixStatus('waiting');
     setCopied(false);
+    setPaidCount(0);
   }
 
   return (
@@ -411,8 +425,11 @@ export default function PaymentForm({ onAdd, onShowReceipt, user }) {
           <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: '0 0 0.5rem' }}>
             Protocolo: <strong>#{receipt.id.slice(-8).toUpperCase()}</strong>
           </p>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: '0 0 1.5rem' }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: '0 0 0.4rem' }}>
             {fmt(receipt.value)} via {receipt.methodLabel} — {fmtDate(receipt.date)}
+          </p>
+          <p style={{ color: 'var(--primary)', fontSize: '0.9rem', fontWeight: 700, margin: '0 0 1.5rem' }}>
+            Você já realizou {paidCount} pagamento(s).
           </p>
           <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
             <button
