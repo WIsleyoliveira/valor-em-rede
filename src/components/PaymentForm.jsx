@@ -81,24 +81,33 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
       setPixQrUrl(qrBase64 ? `data:image/svg+xml;base64,${qrBase64}` : '');
       setPixLink(copyPaste);
 
-      // Aguarda 15s antes da 1ª checagem — garante que o QR Code seja exibido
-      delayRef.current = setTimeout(() => {
-        pollingRef.current = setInterval(async () => {
-          try {
-            const stRes = await fetch(`/api/pix-status?id=${encodeURIComponent(paymentId)}`);
-            const stData = await stRes.json();
-            const status = (stData?.status || '').toUpperCase();
-
-            if (['RECEIVED', 'CONFIRMED', 'RECEIVED_IN_CASH'].includes(status)) {
-              clearInterval(pollingRef.current);
-              setPixStatus('confirmed');
-              setTimeout(() => confirmarPagamento(paymentId), 800);
-            }
-          } catch {
-            // mantém polling silencioso
+      // Inicia polling imediato — verifica localStorage (pagar.html) e API a cada 3s
+      pollingRef.current = setInterval(async () => {
+        try {
+          // 1. Checa se pagar.html já confirmou via localStorage
+          const local = localStorage.getItem(`pix_confirmado_${paymentId}`);
+          if (local) {
+            clearInterval(pollingRef.current);
+            localStorage.removeItem(`pix_confirmado_${paymentId}`);
+            setPixStatus('confirmed');
+            setTimeout(() => confirmarPagamento(paymentId), 800);
+            return;
           }
-        }, 5000);
-      }, 15_000);
+
+          // 2. Fallback: checa status na API
+          const stRes = await fetch(`/api/pix-status?id=${encodeURIComponent(paymentId)}`);
+          const stData = await stRes.json();
+          const status = (stData?.status || '').toUpperCase();
+
+          if (['RECEIVED', 'CONFIRMED', 'RECEIVED_IN_CASH'].includes(status)) {
+            clearInterval(pollingRef.current);
+            setPixStatus('confirmed');
+            setTimeout(() => confirmarPagamento(paymentId), 800);
+          }
+        } catch {
+          // mantém polling silencioso
+        }
+      }, 3000);
     } catch (err) {
       setPixError(err.message || 'Erro ao gerar PIX');
     } finally {
@@ -382,16 +391,6 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
                     </div>
                   )}
 
-                  {/* Botão de simulação para demo */}
-                  {pixId && !pixError && (
-                    <button
-                      className="btn btn-primary"
-                      onClick={() => confirmarPagamento(pixId)}
-                      style={{ marginTop: '1rem', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
-                    >
-                      <CheckCircle size={16} /> Confirmar pagamento recebido
-                    </button>
-                  )}
                 </div>
               )}
 
