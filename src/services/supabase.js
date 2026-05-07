@@ -40,4 +40,6 @@ if (supabase) {
       localStorage.setItem(LAST_PING_KEY, String(Date.now()));
     });
   }
+
+  
 }
