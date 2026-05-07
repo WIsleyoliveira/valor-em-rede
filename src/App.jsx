@@ -128,7 +128,7 @@ export default function App() {
       case 'donation':    return <DonationForm onAdd={handleAdd} user={user} />;
       case 'expense':     return <ExpenseForm onAdd={handleAdd} onShowReceipt={setReceiptTx} />;
       case 'history':     return <HistoryView transactions={transactions} onShowReceipt={setReceiptTx} />;
-      case 'transparency':return <TransparencyView transactions={transactions} totals={totals} categoryBreakdown={categoryBreakdown} />;
+      case 'transparency':return <TransparencyView transactions={transactions} totals={totals} categoryBreakdown={categoryBreakdown} expensesOnly={user?.role !== 'manager'} />;
       case 'expenses':    return <TransparencyView transactions={transactions} totals={totals} categoryBreakdown={categoryBreakdown} expensesOnly />;
       case 'export':      return <AmazonPeopleExport transactions={transactions} totals={totals} members={[]} user={user} />;
       case 'ai':          return <AIRecommendations recommendations={recommendations} loading={loadingRec} onRefresh={handleAIRefresh} />;
