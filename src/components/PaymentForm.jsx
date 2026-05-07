@@ -89,8 +89,10 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
           if (local) {
             clearInterval(pollingRef.current);
             localStorage.removeItem(`pix_confirmado_${paymentId}`);
+            let pixData = null;
+            try { pixData = JSON.parse(local); } catch { /* usa valores padrão */ }
             setPixStatus('confirmed');
-            setTimeout(() => confirmarPagamento(paymentId), 800);
+            setTimeout(() => confirmarPagamento(paymentId, pixData), 800);
             return;
           }
 
@@ -123,13 +125,15 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
     setTimeout(() => setCopied(false), 2500);
   }
 
-  function confirmarPagamento(idPix) {
+  function confirmarPagamento(idPix, pixData) {
     clearInterval(pollingRef.current);
-    const value = parseMasked(amount);
+    // Se veio do pagar.html (QR Code físico), usa nome/valor de lá; senão usa os do formulário
+    const value = (pixData?.valor && pixData.valor > 0) ? pixData.valor : parseMasked(amount);
+    const pagadorName = pixData?.nome || name;
     const rec = {
       id: genId(),
       type: 'payment',
-      name,
+      name: pagadorName,
       email,
       value,
       method: method.id,
@@ -140,7 +144,7 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
     };
 
     const normalizedEmail = (email || '').trim().toLowerCase();
-    const normalizedName = (name || '').trim().toLowerCase();
+    const normalizedName = (pagadorName || '').trim().toLowerCase();
     const previousPaidCount = (transactions || []).filter((t) => {
       if (t.type !== 'payment') return false;
       const tEmail = (t.email || '').trim().toLowerCase();
@@ -440,9 +444,14 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
             <CheckCircle size={36} color="#059669" />
           </div>
           <h3 style={{ margin: '0 0 0.25rem', color: '#065f46', fontSize: '1.1rem' }}>Pagamento confirmado!</h3>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: '0 0 0.5rem' }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: '0 0 0.25rem' }}>
             Protocolo: <strong>#{receipt.id.slice(-8).toUpperCase()}</strong>
           </p>
+          {receipt.name && (
+            <p style={{ color: '#065f46', fontSize: '1rem', fontWeight: 700, margin: '0 0 0.25rem' }}>
+              {receipt.name}
+            </p>
+          )}
           <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: '0 0 0.4rem' }}>
             {fmt(receipt.value)} via {receipt.methodLabel} — {fmtDate(receipt.date)}
           </p>
