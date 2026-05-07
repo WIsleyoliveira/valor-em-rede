@@ -1,0 +1,6 @@
+{
+  "rewrites": [
+    { "source": "/pagar.html", "destination": "/pagar.html" },
+    { "source": "/((?!pagar\\.html).*)", "destination": "/index.html" }
+  ]
+}
