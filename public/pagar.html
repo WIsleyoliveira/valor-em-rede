@@ -27,8 +27,44 @@
       text-align: center;
     }
 
+    /* Tela formulário */
+    #tela-form { display: none; flex-direction: column; gap: 1.25rem; }
+
+    .form-logo {
+      font-size: 2rem;
+      margin-bottom: 0.25rem;
+    }
+    .form-titulo { font-size: 1.2rem; font-weight: 800; color: #065f46; }
+    .form-sub    { font-size: 0.85rem; color: #6b7280; }
+
+    .form-group { display: flex; flex-direction: column; gap: 0.4rem; text-align: left; }
+    .form-label { font-size: 0.8rem; font-weight: 600; color: #374151; }
+    .form-input {
+      border: 1.5px solid #d1fae5;
+      border-radius: 10px;
+      padding: 0.75rem 1rem;
+      font-size: 1rem;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .form-input:focus { border-color: #059669; }
+
+    .btn-pagar {
+      background: #059669;
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 0.9rem;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-pagar:hover { background: #047857; }
+    .btn-pagar:disabled { background: #a7f3d0; cursor: not-allowed; }
+
     /* Tela processando */
-    #tela-processando { display: flex; flex-direction: column; align-items: center; gap: 1rem; }
+    #tela-processando { display: none; flex-direction: column; align-items: center; gap: 1rem; }
 
     .spinner-ring {
       width: 72px; height: 72px;
@@ -108,6 +144,25 @@
 <body>
 <div class="card">
 
+  <!-- Formulário (sem parâmetros na URL) -->
+  <div id="tela-form">
+    <div class="form-logo">⚡</div>
+    <div class="form-titulo">Pagar via PIX</div>
+    <div class="form-sub">Valor em Rede — Associação Comunitária</div>
+
+    <div class="form-group">
+      <label class="form-label" for="input-nome">Seu nome</label>
+      <input id="input-nome" class="form-input" type="text" placeholder="Nome completo" autocomplete="name" />
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="input-valor">Valor (R$)</label>
+      <input id="input-valor" class="form-input" type="number" min="1" step="0.01" placeholder="0,00" inputmode="decimal" />
+    </div>
+
+    <button class="btn-pagar" id="btn-pagar" onclick="confirmarManual()">Confirmar pagamento</button>
+  </div>
+
   <!-- Processando -->
   <div id="tela-processando">
     <div class="spinner-ring"></div>
@@ -141,17 +196,16 @@
   const params = new URLSearchParams(window.location.search);
   const id    = params.get('id')    || '';
   const valor = parseFloat(params.get('valor') || '0');
-  const nome  = decodeURIComponent(params.get('nome') || 'Associado');
+  const nome  = decodeURIComponent(params.get('nome') || '');
 
-  document.getElementById('exibe-valor').textContent =
-    valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-  document.getElementById('exibe-nome').textContent = nome;
+  function mostrarSucesso(v, n, pid) {
+    document.getElementById('exibe-valor').textContent =
+      v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    document.getElementById('exibe-nome').textContent = n;
 
-  // Confirma automaticamente após 2 segundos — sem clique
-  setTimeout(() => {
-    if (id) {
-      localStorage.setItem(`pix_confirmado_${id}`, JSON.stringify({
-        id, valor, nome, confirmedAt: new Date().toISOString(),
+    if (pid) {
+      localStorage.setItem(`pix_confirmado_${pid}`, JSON.stringify({
+        id: pid, valor: v, nome: n, confirmedAt: new Date().toISOString(),
       }));
     }
 
@@ -159,7 +213,43 @@
     const s = document.getElementById('tela-sucesso');
     s.style.display = 'flex';
     s.classList.add('fade-in');
-  }, 2000);
+  }
+
+  // Veio com parâmetros (link gerado pelo app) — fluxo automático
+  if (id && valor > 0) {
+    document.getElementById('tela-processando').style.display = 'flex';
+    setTimeout(() => mostrarSucesso(valor, nome || 'Associado', id), 2000);
+
+  // Sem parâmetros (QR Code físico) — mostra formulário
+  } else {
+    document.getElementById('tela-form').style.display = 'flex';
+
+    // Máscara simples de valor
+    document.getElementById('input-valor').addEventListener('input', function() {
+      const btn = document.getElementById('btn-pagar');
+      const v = parseFloat(this.value);
+      btn.disabled = !(v > 0 && document.getElementById('input-nome').value.trim().length > 1);
+    });
+    document.getElementById('input-nome').addEventListener('input', function() {
+      const btn = document.getElementById('btn-pagar');
+      const v = parseFloat(document.getElementById('input-valor').value);
+      btn.disabled = !(v > 0 && this.value.trim().length > 1);
+    });
+    document.getElementById('btn-pagar').disabled = true;
+  }
+
+  function confirmarManual() {
+    const n = document.getElementById('input-nome').value.trim();
+    const v = parseFloat(document.getElementById('input-valor').value);
+    if (!n || !(v > 0)) return;
+
+    document.getElementById('tela-form').style.display = 'none';
+    document.getElementById('tela-processando').style.display = 'flex';
+
+    // Gera um ID local para este pagamento manual
+    const pid = `pix_qr_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+    setTimeout(() => mostrarSucesso(v, n, pid), 2000);
+  }
 </script>
 </body>
 </html>
