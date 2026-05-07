@@ -333,22 +333,18 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
                     Escaneie com o celular
                   </p>
 
-                  {/* QR Code — gerado dinamicamente a partir do link de confirmação */}
+                  {/* QR Code — imagem estática do QR Code físico */}
                   <div style={{ display: 'inline-block', background: '#fff', padding: '0.75rem', borderRadius: 10, border: '2px solid #bbf7d0', marginBottom: '0.75rem' }}>
-                    {pixLoading && (
+                    {pixLoading ? (
                       <p style={{ margin: 0, fontSize: '0.8rem', color: '#6b7280' }}>Gerando QR Code...</p>
-                    )}
-                    {!pixLoading && pixLink && (
+                    ) : (
                       <img
-                        src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(pixLink)}`}
+                        src="/qrcode-pagar.png"
                         alt="QR Code PIX"
                         width={180}
                         height={180}
                         style={{ display: 'block' }}
                       />
-                    )}
-                    {!pixLoading && !pixLink && (
-                      <p style={{ margin: 0, fontSize: '0.8rem', color: '#b91c1c' }}>QR Code indisponível</p>
                     )}
                   </div>
 
