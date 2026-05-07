@@ -15,10 +15,16 @@ export default async function handler(req, res) {
   const { id } = req.query;
   if (!id) return res.status(400).json({ error: 'id é obrigatório' });
 
-  const status =
-    typeof id === 'string' && id.startsWith('pix_mock_')
-      ? 'CONFIRMED'
-      : 'PENDING';
+  // Extrai o timestamp do ID (formato: pix_mock_{timestamp}_{random})
+  // Só confirma após 30 segundos para o usuário ter tempo de ver o QR Code
+  let status = 'PENDING';
+  if (typeof id === 'string' && id.startsWith('pix_mock_')) {
+    const parts = id.split('_');
+    const ts = parseInt(parts[2], 10);
+    if (!isNaN(ts) && Date.now() - ts >= 30_000) {
+      status = 'CONFIRMED';
+    }
+  }
 
   return res.status(200).json({ status, simulated: true });
 }

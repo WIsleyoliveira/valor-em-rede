@@ -25,6 +25,7 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
   const [pixLoading, setPixLoading] = useState(false);
   const [pixError, setPixError] = useState('');
   const pollingRef              = useRef(null);
+  const delayRef                = useRef(null);
 
   const name  = user?.name  || '';
   const email = user?.email || '';
@@ -36,6 +37,7 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
     }
 
     if (step !== 3) {
+      clearTimeout(delayRef.current);
       clearInterval(pollingRef.current);
       setPixStatus('waiting');
       setPixLoading(false);
@@ -44,6 +46,7 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
   }, [step, method]);
 
   async function criarPixEIniciarPolling() {
+    clearTimeout(delayRef.current);
     clearInterval(pollingRef.current);
     setPixStatus('waiting');
     setPixLoading(true);
@@ -75,24 +78,27 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
       const copyPaste = data.copyPaste || '';
 
       setPixId(paymentId);
-      setPixQrUrl(qrBase64 ? `data:image/png;base64,${qrBase64}` : '');
+      setPixQrUrl(qrBase64 ? `data:image/svg+xml;base64,${qrBase64}` : '');
       setPixLink(copyPaste);
 
-      pollingRef.current = setInterval(async () => {
-        try {
-          const stRes = await fetch(`/api/pix-status?id=${encodeURIComponent(paymentId)}`);
-          const stData = await stRes.json();
-          const status = (stData?.status || '').toUpperCase();
+      // Aguarda 15s antes da 1ª checagem — garante que o QR Code seja exibido
+      delayRef.current = setTimeout(() => {
+        pollingRef.current = setInterval(async () => {
+          try {
+            const stRes = await fetch(`/api/pix-status?id=${encodeURIComponent(paymentId)}`);
+            const stData = await stRes.json();
+            const status = (stData?.status || '').toUpperCase();
 
-          if (['RECEIVED', 'CONFIRMED', 'RECEIVED_IN_CASH'].includes(status)) {
-            clearInterval(pollingRef.current);
-            setPixStatus('confirmed');
-            setTimeout(() => confirmarPagamento(paymentId), 800);
+            if (['RECEIVED', 'CONFIRMED', 'RECEIVED_IN_CASH'].includes(status)) {
+              clearInterval(pollingRef.current);
+              setPixStatus('confirmed');
+              setTimeout(() => confirmarPagamento(paymentId), 800);
+            }
+          } catch {
+            // mantém polling silencioso
           }
-        } catch {
-          // mantém polling silencioso
-        }
-      }, 5000);
+        }, 5000);
+      }, 15_000);
     } catch (err) {
       setPixError(err.message || 'Erro ao gerar PIX');
     } finally {
@@ -100,7 +106,7 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
     }
   }
 
-  useEffect(() => () => clearInterval(pollingRef.current), []);
+  useEffect(() => () => { clearTimeout(delayRef.current); clearInterval(pollingRef.current); }, []);
 
   function copiarLink() {
     navigator.clipboard.writeText(pixLink);
@@ -141,6 +147,7 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
   }
 
   function voltarDoStep3() {
+    clearTimeout(delayRef.current);
     clearInterval(pollingRef.current);
     setPixId('');
     setPixQrUrl('');
@@ -150,6 +157,7 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
   }
 
   function reset() {
+    clearTimeout(delayRef.current);
     clearInterval(pollingRef.current);
     setStep(1);
     setAmount('');
