@@ -36,7 +36,10 @@ export default defineConfig({
       },
       workbox: {
         // Arquivos que o service worker vai cachear para funcionar offline
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        // pagar.html é excluído para ser sempre servido diretamente pelo servidor
+        globPatterns: ['**/*.{js,css,ico,png,svg,woff2}', 'index.html'],
+        navigateFallback: 'index.html',
+        navigateFallbackDenylist: [/^\/pagar\.html/],
         runtimeCaching: [
           {
             // Cache do Supabase API com estratégia network-first
