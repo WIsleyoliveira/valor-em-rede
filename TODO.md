@@ -1,0 +1,6 @@
+- [x] Revisar integração atual do PIX no frontend e contratos das APIs `api/pix.js` e `api/pix-status.js`
+- [x] Refatorar `src/components/PaymentForm.jsx` para criar cobrança real via API e exibir QR da resposta
+- [x] Implementar polling de status real do pagamento via `api/pix-status.js`
+- [x] Remover dependência de confirmação por `localStorage`/`pagar.html` no fluxo principal
+- [x] Validar build local e checar status git
+- [ ] Commitar correção e subir na `main`

@@ -2,18 +2,6 @@ import { useState, useEffect, useRef } from 'react';
 import { CreditCard, Zap, FileText, Banknote, CheckCircle, ChevronRight, ChevronLeft, Copy, Check, FileCheck, Lock } from 'lucide-react';
 import { fmt, maskMoney, parseMasked, genId, fmtDate, todayLocal } from '../utils/format';
 
-// ── Gera URL do QR Code apontando para /pagar.html com os parâmetros ─────────
-function gerarUrlQRCode(id, valor, nome) {
-  const base = `${window.location.origin}/pagar.html`;
-  const params = new URLSearchParams({
-    id,
-    valor: valor.toFixed(2),
-    nome: encodeURIComponent(nome),
-  });
-  const urlPagamento = `${base}?${params.toString()}`;
-  return `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(urlPagamento)}`;
-}
-
 const METHODS = [
   { id: 'pix',      label: 'PIX',      icon: Zap,        color: '#059669', desc: 'Instantâneo e gratuito' },
   { id: 'boleto',   label: 'Boleto',   icon: FileText,   color: '#3b82f6', desc: 'Vence em 3 dias úteis'  },
@@ -33,44 +21,83 @@ export default function PaymentForm({ onAdd, onShowReceipt, user }) {
   const [pixLink, setPixLink]   = useState('');
   const [copied, setCopied]     = useState(false);
   const [pixStatus, setPixStatus] = useState('waiting'); // waiting | confirmed
+  const [pixLoading, setPixLoading] = useState(false);
+  const [pixError, setPixError] = useState('');
   const pollingRef              = useRef(null);
 
   const name  = user?.name  || '';
   const email = user?.email || '';
 
-  // ── Gera QR Code ao entrar no step 3 com PIX ─────────────────────────────
+  // ── Cria cobrança PIX real e inicia polling de status ─────────────────────
   useEffect(() => {
     if (step === 3 && method?.id === 'pix') {
-      const id    = genId();
-      const valor = parseMasked(amount);
-      const qrUrl = gerarUrlQRCode(id, valor, name || 'Associado');
-      const link  = `${window.location.origin}/pagar.html?id=${id}&valor=${valor.toFixed(2)}&nome=${encodeURIComponent(name || 'Associado')}`;
-
-      setPixId(id);
-      setPixQrUrl(qrUrl);
-      setPixLink(link);
-      setPixStatus('waiting');
-
-      // Limpa qualquer confirmação antiga desse id
-      localStorage.removeItem(`pix_confirmado_${id}`);
-
-      // Inicia polling no localStorage a cada 1 segundo
-      pollingRef.current = setInterval(() => {
-        const confirmado = localStorage.getItem(`pix_confirmado_${id}`);
-        if (confirmado) {
-          clearInterval(pollingRef.current);
-          localStorage.removeItem(`pix_confirmado_${id}`);
-          setPixStatus('confirmed');
-          setTimeout(() => confirmarPagamento(id), 800);
-        }
-      }, 1000);
+      criarPixEIniciarPolling();
     }
 
     if (step !== 3) {
       clearInterval(pollingRef.current);
       setPixStatus('waiting');
+      setPixLoading(false);
+      setPixError('');
     }
   }, [step, method]);
+
+  async function criarPixEIniciarPolling() {
+    clearInterval(pollingRef.current);
+    setPixStatus('waiting');
+    setPixLoading(true);
+    setPixError('');
+    setPixId('');
+    setPixQrUrl('');
+    setPixLink('');
+
+    try {
+      const valor = parseMasked(amount);
+      const response = await fetch('/api/pix', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: name || 'Associado',
+          email: email || `associado_${Date.now()}@local.invalid`,
+          value: valor,
+          memberId: user?.id || null,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data?.error || 'Falha ao gerar cobrança PIX');
+      }
+
+      const paymentId = data.paymentId;
+      const qrBase64 = data.qrCodeImage || '';
+      const copyPaste = data.copyPaste || '';
+
+      setPixId(paymentId);
+      setPixQrUrl(qrBase64 ? `data:image/png;base64,${qrBase64}` : '');
+      setPixLink(copyPaste);
+
+      pollingRef.current = setInterval(async () => {
+        try {
+          const stRes = await fetch(`/api/pix-status?id=${encodeURIComponent(paymentId)}`);
+          const stData = await stRes.json();
+          const status = (stData?.status || '').toUpperCase();
+
+          if (['RECEIVED', 'CONFIRMED', 'RECEIVED_IN_CASH'].includes(status)) {
+            clearInterval(pollingRef.current);
+            setPixStatus('confirmed');
+            setTimeout(() => confirmarPagamento(paymentId), 800);
+          }
+        } catch {
+          // mantém polling silencioso
+        }
+      }, 5000);
+    } catch (err) {
+      setPixError(err.message || 'Erro ao gerar PIX');
+    } finally {
+      setPixLoading(false);
+    }
+  }
 
   useEffect(() => () => clearInterval(pollingRef.current), []);
 
@@ -102,7 +129,6 @@ export default function PaymentForm({ onAdd, onShowReceipt, user }) {
 
   function voltarDoStep3() {
     clearInterval(pollingRef.current);
-    if (pixId) localStorage.removeItem(`pix_confirmado_${pixId}`);
     setPixId('');
     setPixQrUrl('');
     setPixLink('');
@@ -274,21 +300,27 @@ export default function PaymentForm({ onAdd, onShowReceipt, user }) {
 
                   {/* QR Code */}
                   <div style={{ display: 'inline-block', background: '#fff', padding: '0.75rem', borderRadius: 10, border: '2px solid #bbf7d0', marginBottom: '0.75rem' }}>
-                    {pixQrUrl && (
+                    {pixLoading && (
+                      <p style={{ margin: 0, fontSize: '0.8rem', color: '#6b7280' }}>Gerando QR Code...</p>
+                    )}
+                    {!pixLoading && pixQrUrl && (
                       <img src={pixQrUrl} alt="QR Code PIX" width={180} height={180} style={{ display: 'block' }} />
+                    )}
+                    {!pixLoading && !pixQrUrl && (
+                      <p style={{ margin: 0, fontSize: '0.8rem', color: '#b91c1c' }}>QR Code indisponível</p>
                     )}
                   </div>
 
                   {/* Instrução */}
                   <p style={{ margin: '0 0 0.75rem', fontSize: '0.78rem', color: '#6b7280', lineHeight: 1.5 }}>
-                    Abra a câmera do celular e aponte para o QR Code.<br />
+                    Abra o app do seu banco e escaneie o QR Code.<br />
                     A confirmação acontece automaticamente.
                   </p>
 
-                  {/* Link copiável — alternativa ao QR Code */}
+                  {/* Código copia-e-cola PIX */}
                   <div style={{ borderTop: '1px dashed #bbf7d0', paddingTop: '0.75rem' }}>
                     <p style={{ margin: '0 0 0.4rem', fontSize: '0.72rem', color: '#065f46', fontWeight: 600 }}>
-                      Ou compartilhe o link de pagamento:
+                      Ou use o código copia-e-cola PIX:
                     </p>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', justifyContent: 'center' }}>
                       <code style={{
@@ -296,24 +328,37 @@ export default function PaymentForm({ onAdd, onShowReceipt, user }) {
                         fontSize: '0.65rem', color: '#065f46', fontWeight: 600,
                         maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                       }}>
-                        {pixLink}
+                        {pixLink || 'Gerando código...'}
                       </code>
-                      <button className="btn btn-ghost" style={{ padding: '0.3rem', flexShrink: 0 }} onClick={copiarLink}>
+                      <button
+                        className="btn btn-ghost"
+                        style={{ padding: '0.3rem', flexShrink: 0 }}
+                        onClick={copiarLink}
+                        disabled={!pixLink}
+                      >
                         {copied ? <Check size={16} color="#059669" /> : <Copy size={16} />}
                       </button>
                     </div>
                   </div>
 
+                  {pixError && (
+                    <p style={{ marginTop: '0.75rem', fontSize: '0.75rem', color: '#b91c1c', fontWeight: 600 }}>
+                      {pixError}
+                    </p>
+                  )}
+
                   {/* Indicador pulsante */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginTop: '0.75rem' }}>
-                    <div style={{
-                      width: 8, height: 8, borderRadius: '50%', background: '#10b981',
-                      animation: 'pulsar 1.5s ease-in-out infinite',
-                    }} />
-                    <span style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 600 }}>
-                      Aguardando confirmação...
-                    </span>
-                  </div>
+                  {!pixError && (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginTop: '0.75rem' }}>
+                      <div style={{
+                        width: 8, height: 8, borderRadius: '50%', background: '#10b981',
+                        animation: 'pulsar 1.5s ease-in-out infinite',
+                      }} />
+                      <span style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 600 }}>
+                        Aguardando confirmação...
+                      </span>
+                    </div>
+                  )}
                 </div>
               )}
 
