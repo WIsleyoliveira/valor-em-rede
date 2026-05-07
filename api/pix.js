@@ -6,11 +6,16 @@ export const config = {
   api: { bodyParser: true },
 };
 
-function makeMockPixPayload(paymentId, value, name) {
-  const normalizedName = (name || 'ASSOCIADO').toUpperCase().replace(/[^A-Z0-9 ]/g, '').slice(0, 25);
-  const amount = Number(value || 0).toFixed(2);
-  const now = Date.now().toString(36).toUpperCase();
-  return `00020126360014BR.GOV.BCB.PIX0114+559999999999520400005303986540${amount.replace('.', '')}5802BR5925${normalizedName.padEnd(25, ' ')}6009SAO PAULO62140510${paymentId.slice(-10)}6304${now.slice(-4)}`;
+function makeConfirmationUrl(req, paymentId, value, name) {
+  const proto = req.headers['x-forwarded-proto'] || 'http';
+  const host  = req.headers['x-forwarded-host'] || req.headers.host || 'localhost:5173';
+  const base  = `${proto}://${host}`;
+  const params = new URLSearchParams({
+    id:    paymentId,
+    valor: Number(value || 0).toFixed(2),
+    nome:  name || 'Associado',
+  });
+  return `${base}/pagar.html?${params.toString()}`;
 }
 
 function makeMockQrBase64(paymentId, value) {
@@ -83,7 +88,7 @@ export default async function handler(req, res) {
   return res.status(200).json({
     paymentId,
     qrCodeImage: makeMockQrBase64(paymentId, value),
-    copyPaste: makeMockPixPayload(paymentId, value, name),
+    copyPaste: makeConfirmationUrl(req, paymentId, value, name),
     expiresAt,
     status: 'PENDING',
     simulated: true,

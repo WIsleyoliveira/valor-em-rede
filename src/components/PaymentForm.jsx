@@ -342,7 +342,7 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
                   {/* Código copia-e-cola PIX */}
                   <div style={{ borderTop: '1px dashed #bbf7d0', paddingTop: '0.75rem' }}>
                     <p style={{ margin: '0 0 0.4rem', fontSize: '0.72rem', color: '#065f46', fontWeight: 600 }}>
-                      Ou use o código copia-e-cola PIX:
+                      Link da página de confirmação:
                     </p>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', justifyContent: 'center' }}>
                       <code style={{
@@ -380,6 +380,17 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
                         Aguardando confirmação...
                       </span>
                     </div>
+                  )}
+
+                  {/* Botão de simulação para demo */}
+                  {pixId && !pixError && (
+                    <button
+                      className="btn btn-primary"
+                      onClick={() => confirmarPagamento(pixId)}
+                      style={{ marginTop: '1rem', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                    >
+                      <CheckCircle size={16} /> Confirmar pagamento recebido
+                    </button>
                   )}
                 </div>
               )}
