@@ -47,6 +47,26 @@ create table if not exists public.amazon_people_log (
   sent_at     timestamptz not null default now()
 );
 
+-- ── Tabela de confirmações PIX (cross-device via pagar.html) ─────────────────
+create table if not exists public.pix_confirmacoes (
+  payment_id  text primary key,
+  valor       numeric(12,2) not null default 0,
+  nome        text,
+  confirmed_at timestamptz not null default now()
+);
+
+-- Limpeza automática de entradas com mais de 1 hora (opcional via pg_cron)
+-- delete from public.pix_confirmacoes where confirmed_at < now() - interval '1 hour';
+
+-- RLS: sem autenticação (chamado pelo pagar.html e pela API serverless)
+alter table public.pix_confirmacoes enable row level security;
+create policy "pix_confirmacoes_insert" on public.pix_confirmacoes
+  for insert with check (true);
+create policy "pix_confirmacoes_select" on public.pix_confirmacoes
+  for select using (true);
+create policy "pix_confirmacoes_update" on public.pix_confirmacoes
+  for update using (true);
+
 -- ── Índices para performance ─────────────────────────────────────────────────
 create index if not exists idx_tx_type     on public.transactions(type);
 create index if not exists idx_tx_date     on public.transactions(date desc);
