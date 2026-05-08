@@ -209,16 +209,18 @@
     s.classList.add('fade-in');
   }
 
-  // Registra confirmação no servidor para que o app do operador detecte via polling
+  // Registra confirmação no servidor (POST para pix-status)
+  // A mesma função que serve o polling também recebe o registro — mesma instância
   async function registrarConfirmacao(pid, v, n) {
     try {
-      await fetch('/api/pix-confirm', {
+      const r = await fetch('/api/pix-status', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: pid, valor: v, nome: n }),
       });
+      return r.ok;
     } catch {
-      // falha silenciosa — o operador pode confirmar manualmente
+      return false;
     }
   }
 
