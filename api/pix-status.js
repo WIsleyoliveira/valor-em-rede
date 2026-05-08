@@ -25,28 +25,41 @@ export default async function handler(req, res) {
   const { id } = req.query;
   if (!id) return res.status(400).json({ error: 'id é obrigatório' });
 
-  // 1. Checa confirmações registradas pelo pagar.html no Supabase
-  try {
-    const supabase = await getSupabase();
-    const { data, error } = await supabase
-      .from('pix_confirmacoes')
-      .select('valor, nome, confirmed_at')
-      .eq('payment_id', id)
-      .single();
+  const supabase = await getSupabase();
 
-    if (!error && data) {
-      return res.status(200).json({
-        status: 'CONFIRMED',
-        valor: data.valor,
-        nome: data.nome,
-        confirmedAt: data.confirmed_at,
-      });
-    }
-  } catch {
-    // falha silenciosa — cai no fallback abaixo
+  // 1. Checa tabela pix_confirmacoes
+  const { data: conf, error: e1 } = await supabase
+    .from('pix_confirmacoes')
+    .select('valor, nome, confirmed_at')
+    .eq('payment_id', id)
+    .maybeSingle();
+
+  if (!e1 && conf) {
+    return res.status(200).json({
+      status: 'CONFIRMED',
+      valor: conf.valor,
+      nome: conf.nome,
+      confirmedAt: conf.confirmed_at,
+    });
   }
 
-  // 2. Fallback: simula confirmação automática para IDs mock após 30s
+  // 2. Fallback: checa tabela transactions (caso pix_confirmacoes não exista)
+  const { data: tx } = await supabase
+    .from('transactions')
+    .select('name, value, created_at')
+    .eq('description', `__pix_confirm__${id}`)
+    .maybeSingle();
+
+  if (tx) {
+    return res.status(200).json({
+      status: 'CONFIRMED',
+      valor: tx.value,
+      nome: tx.name,
+      confirmedAt: tx.created_at,
+    });
+  }
+
+  // 3. Simula confirmação automática para IDs mock após 30s
   let status = 'PENDING';
   if (typeof id === 'string' && id.startsWith('pix_mock_')) {
     const parts = id.split('_');
