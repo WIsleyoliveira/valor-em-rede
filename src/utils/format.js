@@ -3,11 +3,15 @@
 export const fmt = (val) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val ?? 0);
 
-export const fmtDate = (iso) =>
-  new Date(iso).toLocaleDateString('pt-BR', {
+export const fmtDate = (iso) => {
+  // Datas no formato YYYY-MM-DD (sem hora) são interpretadas como UTC meia-noite,
+  // causando deslocamento de fuso. Adicionamos T00:00 para forçar hora local.
+  const normalized = /^\d{4}-\d{2}-\d{2}$/.test(iso) ? `${iso}T00:00` : iso;
+  return new Date(normalized).toLocaleDateString('pt-BR', {
     day: '2-digit', month: '2-digit', year: 'numeric',
     hour: '2-digit', minute: '2-digit',
   });
+};
 
 export const fmtDateShort = (iso) =>
   new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });

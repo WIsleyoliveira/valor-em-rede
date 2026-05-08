@@ -74,11 +74,14 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
       }
 
       const paymentId = data.paymentId;
-      const qrBase64 = data.qrCodeImage || '';
       const copyPaste = data.copyPaste || '';
 
       setPixId(paymentId);
-      setPixQrUrl(qrBase64 ? `data:image/svg+xml;base64,${qrBase64}` : '');
+      // Gera QR Code real a partir da URL de confirmação (pagar.html?id=X&valor=Y&nome=Z)
+      // O associado escaneia este QR → abre pagar.html com parâmetros → confirma automaticamente
+      setPixQrUrl(copyPaste
+        ? `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(copyPaste)}`
+        : '');
       setPixLink(copyPaste);
 
       // Inicia polling — checa status na API a cada 3s
