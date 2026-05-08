@@ -18,7 +18,6 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
 
   // ── Estados do PIX ───────────────────────────────────────────────────────
   const [pixId, setPixId]       = useState('');
-  const [pixQrUrl, setPixQrUrl] = useState('');
   const [pixLink, setPixLink]   = useState('');
   const [copied, setCopied]     = useState(false);
   const [pixStatus, setPixStatus] = useState('waiting'); // waiting | confirmed
@@ -52,7 +51,7 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
     setPixLoading(true);
     setPixError('');
     setPixId('');
-    setPixQrUrl('');
+
     setPixLink('');
 
     try {
@@ -77,11 +76,6 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
       const copyPaste = data.copyPaste || '';
 
       setPixId(paymentId);
-      // Gera QR Code real a partir da URL de confirmação (pagar.html?id=X&valor=Y&nome=Z)
-      // O associado escaneia este QR → abre pagar.html com parâmetros → confirma automaticamente
-      setPixQrUrl(copyPaste
-        ? `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(copyPaste)}`
-        : '');
       setPixLink(copyPaste);
 
       // Inicia polling — checa status na API a cada 3s
@@ -156,7 +150,7 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
     clearTimeout(delayRef.current);
     clearInterval(pollingRef.current);
     setPixId('');
-    setPixQrUrl('');
+
     setPixLink('');
     setPixStatus('waiting');
     setStep(2);
@@ -170,7 +164,7 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
     setMethod(null);
     setReceipt(null);
     setPixId('');
-    setPixQrUrl('');
+
     setPixLink('');
     setPixStatus('waiting');
     setCopied(false);
@@ -326,19 +320,15 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
                     Escaneie com o celular
                   </p>
 
-                  {/* QR Code dinâmico — gerado pela API com o link de confirmação */}
+                  {/* QR Code físico */}
                   <div style={{ display: 'inline-block', background: '#fff', padding: '0.75rem', borderRadius: 10, border: '2px solid #bbf7d0', marginBottom: '0.75rem' }}>
-                    {pixLoading || !pixQrUrl ? (
-                      <p style={{ margin: 0, fontSize: '0.8rem', color: '#6b7280' }}>Gerando QR Code...</p>
-                    ) : (
-                      <img
-                        src={pixQrUrl}
-                        alt="QR Code PIX"
-                        width={180}
-                        height={180}
-                        style={{ display: 'block' }}
-                      />
-                    )}
+                    <img
+                      src="/qrcode-pagar.png"
+                      alt="QR Code PIX"
+                      width={180}
+                      height={180}
+                      style={{ display: 'block' }}
+                    />
                   </div>
 
                   {/* Instrução */}
