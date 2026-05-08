@@ -18,6 +18,7 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
 
   // ── Estados do PIX ───────────────────────────────────────────────────────
   const [pixId, setPixId]       = useState('');
+  const [pixQrUrl, setPixQrUrl] = useState('');
   const [pixLink, setPixLink]   = useState('');
   const [copied, setCopied]     = useState(false);
   const [pixStatus, setPixStatus] = useState('waiting'); // waiting | confirmed
@@ -51,7 +52,7 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
     setPixLoading(true);
     setPixError('');
     setPixId('');
-
+    setPixQrUrl('');
     setPixLink('');
 
     try {
@@ -77,6 +78,9 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
 
       setPixId(paymentId);
       setPixLink(copyPaste);
+      setPixQrUrl(copyPaste
+        ? `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(copyPaste)}`
+        : '');
 
       // Inicia polling — checa status na API a cada 3s
       // O pagar.html registra a confirmação via /api/pix-confirm e o pix-status retorna CONFIRMED
@@ -150,7 +154,7 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
     clearTimeout(delayRef.current);
     clearInterval(pollingRef.current);
     setPixId('');
-
+    setPixQrUrl('');
     setPixLink('');
     setPixStatus('waiting');
     setStep(2);
@@ -164,7 +168,7 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
     setMethod(null);
     setReceipt(null);
     setPixId('');
-
+    setPixQrUrl('');
     setPixLink('');
     setPixStatus('waiting');
     setCopied(false);
@@ -320,10 +324,10 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
                     Escaneie com o celular
                   </p>
 
-                  {/* QR Code físico */}
+                  {/* QR Code — dinâmico com o link de confirmação */}
                   <div style={{ display: 'inline-block', background: '#fff', padding: '0.75rem', borderRadius: 10, border: '2px solid #bbf7d0', marginBottom: '0.75rem' }}>
                     <img
-                      src="/qrcode-pagar.png"
+                      src={pixQrUrl || '/qrcode-pagar.png'}
                       alt="QR Code PIX"
                       width={180}
                       height={180}
