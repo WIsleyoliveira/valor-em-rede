@@ -203,42 +203,48 @@
       v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     document.getElementById('exibe-nome').textContent = n;
 
-    if (pid) {
-      localStorage.setItem(`pix_confirmado_${pid}`, JSON.stringify({
-        id: pid, valor: v, nome: n, confirmedAt: new Date().toISOString(),
-      }));
-    }
-
     document.getElementById('tela-processando').style.display = 'none';
     const s = document.getElementById('tela-sucesso');
     s.style.display = 'flex';
     s.classList.add('fade-in');
   }
 
-  // Veio com parâmetros (link gerado pelo app) — fluxo automático
+  // Registra confirmação no servidor para que o app do operador detecte via polling
+  async function registrarConfirmacao(pid, v, n) {
+    try {
+      await fetch('/api/pix-confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: pid, valor: v, nome: n }),
+      });
+    } catch {
+      // falha silenciosa — o operador pode confirmar manualmente
+    }
+  }
+
+  // Veio com parâmetros (QR Code dinâmico gerado pelo app) — fluxo automático
   if (id && valor > 0) {
     document.getElementById('tela-processando').style.display = 'flex';
-    setTimeout(() => mostrarSucesso(valor, nome || 'Associado', id), 2000);
+    registrarConfirmacao(id, valor, nome || 'Associado').then(() => {
+      mostrarSucesso(valor, nome || 'Associado', id);
+    });
 
   // Sem parâmetros (QR Code físico) — mostra formulário
   } else {
     document.getElementById('tela-form').style.display = 'flex';
 
-    // Máscara simples de valor
-    document.getElementById('input-valor').addEventListener('input', function() {
-      const btn = document.getElementById('btn-pagar');
-      const v = parseFloat(this.value);
-      btn.disabled = !(v > 0 && document.getElementById('input-nome').value.trim().length > 1);
-    });
-    document.getElementById('input-nome').addEventListener('input', function() {
-      const btn = document.getElementById('btn-pagar');
+    function validarForm() {
       const v = parseFloat(document.getElementById('input-valor').value);
-      btn.disabled = !(v > 0 && this.value.trim().length > 1);
-    });
+      const n = document.getElementById('input-nome').value.trim();
+      document.getElementById('btn-pagar').disabled = !(v > 0 && n.length > 1);
+    }
+
+    document.getElementById('input-valor').addEventListener('input', validarForm);
+    document.getElementById('input-nome').addEventListener('input', validarForm);
     document.getElementById('btn-pagar').disabled = true;
   }
 
-  function confirmarManual() {
+  async function confirmarManual() {
     const n = document.getElementById('input-nome').value.trim();
     const v = parseFloat(document.getElementById('input-valor').value);
     if (!n || !(v > 0)) return;
@@ -247,8 +253,12 @@
     document.getElementById('tela-processando').style.display = 'flex';
 
     // Gera um ID local para este pagamento manual
-    const pid = `pix_qr_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
-    setTimeout(() => mostrarSucesso(v, n, pid), 2000);
+    const pid = 'pix_qr_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+
+    // Registra no servidor para o app do operador detectar
+    await registrarConfirmacao(pid, v, n);
+
+    mostrarSucesso(v, n, pid);
   }
 </script>
 </body>

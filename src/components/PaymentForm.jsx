@@ -81,30 +81,20 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
       setPixQrUrl(qrBase64 ? `data:image/svg+xml;base64,${qrBase64}` : '');
       setPixLink(copyPaste);
 
-      // Inicia polling imediato — verifica localStorage (pagar.html) e API a cada 3s
+      // Inicia polling — checa status na API a cada 3s
+      // O pagar.html registra a confirmação via /api/pix-confirm e o pix-status retorna CONFIRMED
       pollingRef.current = setInterval(async () => {
         try {
-          // 1. Checa se pagar.html já confirmou via localStorage
-          const local = localStorage.getItem(`pix_confirmado_${paymentId}`);
-          if (local) {
-            clearInterval(pollingRef.current);
-            localStorage.removeItem(`pix_confirmado_${paymentId}`);
-            let pixData = null;
-            try { pixData = JSON.parse(local); } catch { /* usa valores padrão */ }
-            setPixStatus('confirmed');
-            setTimeout(() => confirmarPagamento(paymentId, pixData), 800);
-            return;
-          }
-
-          // 2. Fallback: checa status na API
           const stRes = await fetch(`/api/pix-status?id=${encodeURIComponent(paymentId)}`);
           const stData = await stRes.json();
           const status = (stData?.status || '').toUpperCase();
 
           if (['RECEIVED', 'CONFIRMED', 'RECEIVED_IN_CASH'].includes(status)) {
             clearInterval(pollingRef.current);
+            // Passa nome/valor vindos do servidor (preenchidos pelo associado no pagar.html)
+            const pixData = stData.valor ? { valor: stData.valor, nome: stData.nome } : null;
             setPixStatus('confirmed');
-            setTimeout(() => confirmarPagamento(paymentId), 800);
+            setTimeout(() => confirmarPagamento(paymentId, pixData), 800);
           }
         } catch {
           // mantém polling silencioso
@@ -333,13 +323,13 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
                     Escaneie com o celular
                   </p>
 
-                  {/* QR Code — imagem estática do QR Code físico */}
+                  {/* QR Code dinâmico — gerado pela API com o link de confirmação */}
                   <div style={{ display: 'inline-block', background: '#fff', padding: '0.75rem', borderRadius: 10, border: '2px solid #bbf7d0', marginBottom: '0.75rem' }}>
-                    {pixLoading ? (
+                    {pixLoading || !pixQrUrl ? (
                       <p style={{ margin: 0, fontSize: '0.8rem', color: '#6b7280' }}>Gerando QR Code...</p>
                     ) : (
                       <img
-                        src="/qrcode-pagar.png"
+                        src={pixQrUrl}
                         alt="QR Code PIX"
                         width={180}
                         height={180}
@@ -350,14 +340,14 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
 
                   {/* Instrução */}
                   <p style={{ margin: '0 0 0.75rem', fontSize: '0.78rem', color: '#6b7280', lineHeight: 1.5 }}>
-                    Abra o app do seu banco e escaneie o QR Code.<br />
+                    Mostre este QR Code para o associado escanear com o celular.<br />
                     A confirmação acontece automaticamente.
                   </p>
 
                   {/* Código copia-e-cola PIX */}
                   <div style={{ borderTop: '1px dashed #bbf7d0', paddingTop: '0.75rem' }}>
                     <p style={{ margin: '0 0 0.4rem', fontSize: '0.72rem', color: '#065f46', fontWeight: 600 }}>
-                      Link da página de confirmação:
+                      Ou compartilhe o link de confirmação:
                     </p>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', justifyContent: 'center' }}>
                       <code style={{

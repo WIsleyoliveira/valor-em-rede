@@ -1,5 +1,7 @@
-// ─── api/pix-status.js — Vercel Serverless Function (MVP sem gateway externo)
-// Simula confirmação de PIX para permitir teste completo do fluxo no app.
+// ─── api/pix-status.js — Vercel Serverless Function ──────────────────────────
+// Verifica o status de uma cobrança PIX.
+// Checa primeiro as confirmações manuais (pagar.html) e depois simula
+// confirmação automática para IDs mock (após 30s).
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const config = {
@@ -15,8 +17,20 @@ export default async function handler(req, res) {
   const { id } = req.query;
   if (!id) return res.status(400).json({ error: 'id é obrigatório' });
 
-  // Extrai o timestamp do ID (formato: pix_mock_{timestamp}_{random})
-  // Só confirma após 30 segundos para o usuário ter tempo de ver o QR Code
+  // 1. Checa confirmações registradas pelo pagar.html (dispositivo do associado)
+  if (global._pixConfirmados) {
+    const entry = global._pixConfirmados.get(id);
+    if (entry) {
+      return res.status(200).json({
+        status: 'CONFIRMED',
+        valor: entry.valor,
+        nome: entry.nome,
+        confirmedAt: entry.confirmedAt,
+      });
+    }
+  }
+
+  // 2. Fallback: simula confirmação automática para IDs mock após 30s
   let status = 'PENDING';
   if (typeof id === 'string' && id.startsWith('pix_mock_')) {
     const parts = id.split('_');
