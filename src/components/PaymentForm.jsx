@@ -7,7 +7,7 @@ const PIX_QR_IMAGE   = '/qrcode-pix.png';
 const PIX_COPIA_COLA = '00020126330014BR.GOV.BCB.PIX0111054595012025204000053039865802BR5917MURILO MUNIZ DIAS6005BELEM622605227Nb3sU3Mw0mTa0iB682C1C63040B5D';
 
 const METHODS = [
-  { id: 'pix',      label: 'PIX',      icon: Zap,        color: '#059669', desc: 'Instantâneo e gratuito' },
+  { id: 'pix',      label: 'PIX',      icon: Zap,        color: 'var(--primary)', desc: 'Instantâneo e gratuito' },
   { id: 'boleto',   label: 'Boleto',   icon: FileText,   color: '#3b82f6', desc: 'Vence em 3 dias úteis'  },
   { id: 'credito',  label: 'Crédito',  icon: CreditCard, color: '#8b5cf6', desc: 'Parcelamento disponível' },
   { id: 'dinheiro', label: 'Dinheiro', icon: Banknote,   color: '#f59e0b', desc: 'Pagamento presencial'    },
@@ -245,21 +245,21 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
 
           {/* ── Bloco PIX estático ── */}
           {method.id === 'pix' && (
-            <div style={{ border: '1px solid #bbf7d0', borderRadius: 10, overflow: 'hidden' }}>
+            <div style={{ border: '1px solid var(--primary-border)', borderRadius: 10, overflow: 'hidden' }}>
 
               {/* Aguardando escaneamento */}
               {!pixConfirmed && (
-                <div style={{ background: '#f0fdf4', padding: '1.25rem', textAlign: 'center' }}>
-                  <p style={{ margin: '0 0 0.5rem', fontWeight: 700, fontSize: '0.9rem', color: '#065f46' }}>
+                <div style={{ background: 'var(--primary-light)', padding: '1.25rem', textAlign: 'center' }}>
+                  <p style={{ margin: '0 0 0.5rem', fontWeight: 700, fontSize: '0.9rem', color: 'var(--primary-dark)' }}>
                     <Zap size={16} color="#059669" style={{ verticalAlign: 'middle', marginRight: 4 }} />
                     Contribuição mensal — R$ 15,00
                   </p>
-                  <p style={{ margin: '0 0 0.75rem', fontSize: '0.78rem', color: '#6b7280' }}>
+                  <p style={{ margin: '0 0 0.75rem', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
                     Escaneie o QR Code com o app do banco
                   </p>
 
                   {/* QR Code estático */}
-                  <div style={{ display: 'inline-block', background: '#fff', padding: '0.75rem', borderRadius: 10, border: '2px solid #bbf7d0', marginBottom: '1rem' }}>
+                  <div style={{ display: 'inline-block', background: 'var(--surface)', padding: '0.75rem', borderRadius: 10, border: '2px solid var(--primary-border)', marginBottom: '1rem' }}>
                     <img
                       src={PIX_QR_IMAGE}
                       alt="QR Code PIX R$ 15,00"
@@ -270,14 +270,14 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
                   </div>
 
                   {/* Copia e cola */}
-                  <div style={{ borderTop: '1px dashed #bbf7d0', paddingTop: '0.75rem', marginBottom: '0.75rem' }}>
-                    <p style={{ margin: '0 0 0.4rem', fontSize: '0.75rem', color: '#065f46', fontWeight: 600 }}>
+                  <div style={{ borderTop: '1px dashed var(--primary-border)', paddingTop: '0.75rem', marginBottom: '0.75rem' }}>
+                    <p style={{ margin: '0 0 0.4rem', fontSize: '0.75rem', color: 'var(--primary-dark)', fontWeight: 600 }}>
                       Ou use o código Pix Copia e Cola:
                     </p>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', justifyContent: 'center' }}>
                       <code style={{
-                        background: '#dcfce7', padding: '0.3rem 0.6rem', borderRadius: 6,
-                        fontSize: '0.62rem', color: '#065f46', fontWeight: 600,
+                        background: 'var(--primary-border)', padding: '0.3rem 0.6rem', borderRadius: 6,
+                        fontSize: '0.62rem', color: 'var(--primary-dark)', fontWeight: 600,
                         maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                       }}>
                         {PIX_COPIA_COLA}
@@ -286,7 +286,7 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
                         {copied ? <Check size={16} color="#059669" /> : <Copy size={16} />}
                       </button>
                     </div>
-                    {copied && <p style={{ fontSize: '0.72rem', color: '#059669', marginTop: '0.3rem' }}>✓ Código copiado!</p>}
+                    {copied && <p style={{ fontSize: '0.72rem', color: 'var(--primary)', marginTop: '0.3rem' }}>✓ Código copiado!</p>}
                   </div>
 
                   {/* Botão confirmar após pagar */}
@@ -302,9 +302,9 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
 
               {/* Confirmado */}
               {pixConfirmed && (
-                <div style={{ background: '#f0fdf4', padding: '1.5rem', textAlign: 'center' }}>
+                <div style={{ background: 'var(--primary-light)', padding: '1.5rem', textAlign: 'center' }}>
                   <CheckCircle size={40} color="#059669" style={{ marginBottom: '0.5rem' }} />
-                  <p style={{ margin: 0, fontWeight: 700, color: '#065f46', fontSize: '1rem' }}>
+                  <p style={{ margin: 0, fontWeight: 700, color: 'var(--primary-dark)', fontSize: '1rem' }}>
                     Pagamento confirmado!
                   </p>
                 </div>
@@ -342,15 +342,15 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
       ══════════════════════════════════════════════ */}
       {step === 4 && receipt && (
         <div className="card" style={{ textAlign: 'center', padding: '2rem 1rem' }}>
-          <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#f0fdf4', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem' }}>
+          <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--primary-light)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem' }}>
             <CheckCircle size={36} color="#059669" />
           </div>
-          <h3 style={{ margin: '0 0 0.25rem', color: '#065f46', fontSize: '1.1rem' }}>Pagamento confirmado!</h3>
+          <h3 style={{ margin: '0 0 0.25rem', color: 'var(--primary-dark)', fontSize: '1.1rem' }}>Pagamento confirmado!</h3>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: '0 0 0.25rem' }}>
             Protocolo: <strong>#{receipt.id.slice(-8).toUpperCase()}</strong>
           </p>
           {receipt.name && (
-            <p style={{ color: '#065f46', fontSize: '1rem', fontWeight: 700, margin: '0 0 0.25rem' }}>
+            <p style={{ color: 'var(--primary-dark)', fontSize: '1rem', fontWeight: 700, margin: '0 0 0.25rem' }}>
               {receipt.name}
             </p>
           )}
