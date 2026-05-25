@@ -204,6 +204,27 @@ export default function App() {
 
       {/* Main */}
       <div className="main-content">
+        <button
+          className="btn btn-secondary"
+          onClick={() => setTheme(prev => prev === 'dark' ? 'light' : 'dark')}
+          style={{
+            position: 'fixed',
+            right: 12,
+            bottom: 84,
+            zIndex: 70,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.4rem',
+            boxShadow: 'var(--shadow)',
+            padding: '0.55rem 0.75rem',
+          }}
+          title={theme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro'}
+        >
+          {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+          <span style={{ fontSize: '0.8rem', fontWeight: 700 }}>
+            {theme === 'dark' ? 'Modo claro' : 'Modo escuro'}
+          </span>
+        </button>
         <Header
           user={user}
           ollamaStatus={ollamaStatus}

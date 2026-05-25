@@ -3,7 +3,7 @@
 - [x] Implementar esquema de cores com contraste para modo claro/escuro
 - [x] Adicionar toggle de tema (claro/escuro) na interface
 - [x] Aplicar tokens de tema no PaymentForm (step 1) sem hardcode
-- [ ] Exibir toggle de tema também no Header (desktop e mobile)
-- [ ] Atualizar integração App -> Header para controle de tema
-- [ ] Push da correção para GitHub
+- [ ] Garantir botão de tema visível com fallback fixo na UI
+- [ ] Forçar refresh de cache/SW antigos no carregamento
+- [ ] Subir correção direto na branch main
 - [ ] Marcar validação visual concluída
