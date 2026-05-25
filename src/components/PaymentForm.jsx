@@ -15,6 +15,8 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
   const [method, setMethod] = useState(null);
   const [receipt, setReceipt] = useState(null);
   const [paidCount, setPaidCount] = useState(0);
+  const [cpf, setCpf]           = useState('');
+  const [cpfError, setCpfError] = useState('');
 
   // ── Estados do PIX ───────────────────────────────────────────────────────
   const [pixId, setPixId]       = useState('');
@@ -29,6 +31,26 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
 
   const name  = user?.name  || '';
   const email = user?.email || '';
+
+  function maskCpf(v) {
+    return v.replace(/\D/g, '').slice(0, 11)
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+  }
+
+  function cpfValido(v) {
+    const d = v.replace(/\D/g, '');
+    if (d.length !== 11 || /^(\d)\1+$/.test(d)) return false;
+    let s = 0;
+    for (let i = 0; i < 9; i++) s += +d[i] * (10 - i);
+    let r = (s * 10) % 11; if (r === 10 || r === 11) r = 0;
+    if (r !== +d[9]) return false;
+    s = 0;
+    for (let i = 0; i < 10; i++) s += +d[i] * (11 - i);
+    r = (s * 10) % 11; if (r === 10 || r === 11) r = 0;
+    return r === +d[10];
+  }
 
   // ── Cria cobrança PIX real e inicia polling de status ─────────────────────
   useEffect(() => {
@@ -64,6 +86,7 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
           name: name || 'Associado',
           email: email || `associado_${Date.now()}@local.invalid`,
           value: valor,
+          cpf: cpf.replace(/\D/g, ''),
           memberId: user?.id || null,
         }),
       });
@@ -78,14 +101,9 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
 
       setPixId(paymentId);
       setPixLink(copyPaste);
-      // Prioriza QR Code base64 do Asaas; fallback para api.qrserver.com
-      setPixQrUrl(
-        data.qrCodeBase64
-          ? `data:image/png;base64,${data.qrCodeBase64}`
-          : copyPaste
-            ? `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(copyPaste)}`
-            : '/qrcode-pagar.png'
-      );
+      setPixQrUrl(copyPaste
+        ? `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(copyPaste)}`
+        : '');
 
       // Inicia polling — checa status na API a cada 3s
       // O pagar.html registra a confirmação via /api/pix-confirm e o pix-status retorna CONFIRMED
@@ -178,6 +196,8 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
     setPixStatus('waiting');
     setCopied(false);
     setPaidCount(0);
+    setCpf('');
+    setCpfError('');
   }
 
   return (
@@ -295,6 +315,22 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
               </button>
             ))}
           </div>
+          {/* Campo CPF — só aparece quando PIX está selecionado */}
+          {method?.id === 'pix' && (
+            <div style={{ marginBottom: '0.75rem' }}>
+              <label className="form-label">CPF do pagador</label>
+              <input
+                className="form-input"
+                placeholder="000.000.000-00"
+                value={cpf}
+                onChange={e => { setCpf(maskCpf(e.target.value)); setCpfError(''); }}
+                style={{ background: 'var(--input-bg)', color: 'var(--text)', border: `1px solid ${cpfError ? '#ef4444' : 'var(--border)'}` }}
+                inputMode="numeric"
+              />
+              {cpfError && <p style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '0.25rem' }}>{cpfError}</p>}
+            </div>
+          )}
+
           <div style={{ display: 'flex', gap: '0.75rem' }}>
             <button className="btn btn-secondary" onClick={() => setStep(1)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
               <ChevronLeft size={16} /> Voltar
@@ -302,7 +338,13 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
             <button
               className="btn btn-primary"
               disabled={!method}
-              onClick={() => setStep(3)}
+              onClick={() => {
+                if (method?.id === 'pix' && !cpfValido(cpf)) {
+                  setCpfError('CPF inválido');
+                  return;
+                }
+                setStep(3);
+              }}
               style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
             >
               Próximo <ChevronRight size={16} />

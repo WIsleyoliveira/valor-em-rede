@@ -6,19 +6,16 @@ export const config = {
 
 const ASAAS_URL = process.env.ASAAS_URL || 'https://sandbox.asaas.com/api/v3';
 
-// CPF fictício válido para sandbox — o Asaas exige CPF mas no sandbox qualquer um válido serve
-const CPF_SANDBOX = '24971563792';
-
-async function getOrCreateCustomer(name, email, apiKey) {
-  // 1. Busca cliente existente pelo e-mail
+async function getOrCreateCustomer(name, email, cpf, apiKey) {
+  // 1. Busca cliente existente pelo CPF
   const search = await fetch(
-    `${ASAAS_URL}/customers?email=${encodeURIComponent(email)}&limit=1`,
+    `${ASAAS_URL}/customers?cpfCnpj=${cpf}&limit=1`,
     { headers: { 'access_token': apiKey, 'User-Agent': 'ValorEmRede/1.0' } }
   );
   const searchData = await search.json();
   if (searchData?.data?.length > 0) return searchData.data[0].id;
 
-  // 2. Cria novo cliente com CPF fictício (obrigatório no Asaas)
+  // 2. Cria novo cliente com CPF real
   const create = await fetch(`${ASAAS_URL}/customers`, {
     method: 'POST',
     headers: {
@@ -26,12 +23,7 @@ async function getOrCreateCustomer(name, email, apiKey) {
       'access_token': apiKey,
       'User-Agent': 'ValorEmRede/1.0',
     },
-    body: JSON.stringify({
-      name,
-      email,
-      cpfCnpj: CPF_SANDBOX,
-      externalReference: email,
-    }),
+    body: JSON.stringify({ name, email, cpfCnpj: cpf }),
   });
   const customer = await create.json();
   if (!customer?.id) throw new Error('Falha ao criar cliente: ' + JSON.stringify(customer));
@@ -51,14 +43,19 @@ export default async function handler(req, res) {
   let body = req.body;
   if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = {}; } }
 
-  const { name, email, value, memberId } = body || {};
-  if (!name || !email || !value) {
-    return res.status(400).json({ error: 'name, email e value são obrigatórios' });
+  const { name, email, value, cpf, memberId } = body || {};
+  if (!name || !email || !value || !cpf) {
+    return res.status(400).json({ error: 'name, email, cpf e value são obrigatórios' });
+  }
+
+  const cpfLimpo = cpf.replace(/\D/g, '');
+  if (cpfLimpo.length !== 11) {
+    return res.status(400).json({ error: 'CPF inválido' });
   }
 
   try {
-    // 1. Garante cliente no Asaas
-    const customerId = await getOrCreateCustomer(name, email, apiKey);
+    // 1. Garante cliente no Asaas com CPF real
+    const customerId = await getOrCreateCustomer(name, email, cpfLimpo, apiKey);
 
     // 2. Cria cobrança PIX
     const dueDate = new Date().toISOString().split('T')[0];
