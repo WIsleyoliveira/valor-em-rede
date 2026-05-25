@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
   LayoutDashboard, CreditCard, Heart, Receipt, History,
-  Eye, Upload, Brain, Building2, LogOut
+  Eye, Upload, Brain, Building2, LogOut, Sun, Moon
 } from 'lucide-react';
 import LoginScreen from './components/LoginScreen';
 import Header from './components/Header';
@@ -44,9 +44,15 @@ export default function App() {
   });
   const [page, setPage] = useState(() => localStorage.getItem('ver_page') || null);
   const [receiptTx, setReceiptTx] = useState(null);
+  const [theme, setTheme] = useState(() => localStorage.getItem('ver_theme') || 'light');
   const { transactions, totals, categoryBreakdown, memberStats, addTransaction, addDonation, addPayment, pending, setPending, setTransactions } = useStore();
   const { status: ollamaStatus, recommendations, loadingRec, fetchRecommendations } = useOllama();
   const { isOnline, syncing, toast, showToast, syncPending } = useSync(pending, setPending, setTransactions);
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('ver_theme', theme);
+  }, [theme]);
 
   // Valida sessão do Supabase em background (sem bloquear a UI)
   useEffect(() => {
@@ -178,6 +184,14 @@ export default function App() {
               <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{user.email}</div>
             </div>
           </div>
+          <button
+            className="btn btn-secondary"
+            style={{ width: '100%', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem', justifyContent: 'flex-start', padding: '0.4rem 0.5rem', fontSize: '0.8rem' }}
+            onClick={() => setTheme(prev => prev === 'dark' ? 'light' : 'dark')}
+          >
+            {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
+            {theme === 'dark' ? 'Modo claro' : 'Modo escuro'}
+          </button>
           <button
             className="btn btn-ghost"
             style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '0.4rem', justifyContent: 'flex-start', padding: '0.4rem 0.5rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}

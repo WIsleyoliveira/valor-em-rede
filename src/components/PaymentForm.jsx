@@ -212,20 +212,30 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
           STEP 1 — Dados e valor
       ══════════════════════════════════════════════ */}
       {step === 1 && (
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div
+          className="card"
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1rem',
+            background: 'var(--surface)',
+            color: 'var(--text)',
+            border: '1px solid var(--border)',
+          }}
+        >
           <div>
             <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
               Nome completo <Lock size={11} color="var(--text-muted)" />
             </label>
             <input className="form-input" value={name} readOnly
-              style={{ background: 'var(--surface-alt)', color: 'var(--text-muted)', cursor: 'not-allowed' }} />
+              style={{ background: 'var(--surface-alt)', color: 'var(--text-muted)', border: '1px solid var(--border)', cursor: 'not-allowed' }} />
           </div>
           <div>
             <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
               E-mail <Lock size={11} color="var(--text-muted)" />
             </label>
             <input className="form-input" value={email} readOnly
-              style={{ background: 'var(--surface-alt)', color: 'var(--text-muted)', cursor: 'not-allowed' }} />
+              style={{ background: 'var(--surface-alt)', color: 'var(--text-muted)', border: '1px solid var(--border)', cursor: 'not-allowed' }} />
           </div>
           <div>
             <label className="form-label">Valor da contribuição</label>
@@ -234,6 +244,7 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
               placeholder="R$ 0,00"
               value={amount}
               onChange={e => setAmount(maskMoney(e.target.value))}
+              style={{ background: 'var(--input-bg)', color: 'var(--text)', border: '1px solid var(--border)' }}
             />
           </div>
           <button
@@ -314,18 +325,18 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
 
           {/* ── Bloco PIX ── */}
           {method.id === 'pix' && (
-            <div style={{ border: '1px solid #bbf7d0', borderRadius: 10, overflow: 'hidden' }}>
+            <div style={{ border: '1px solid var(--primary-border)', borderRadius: 10, overflow: 'hidden' }}>
 
               {/* Aguardando pagamento */}
               {pixStatus === 'waiting' && (
-                <div style={{ background: '#f0fdf4', padding: '1.25rem', textAlign: 'center' }}>
-                  <p style={{ margin: '0 0 0.75rem', fontWeight: 700, fontSize: '0.9rem', color: '#065f46' }}>
-                    <Zap size={16} color="#059669" style={{ verticalAlign: 'middle', marginRight: 4 }} />
+                <div style={{ background: 'var(--primary-light)', padding: '1.25rem', textAlign: 'center' }}>
+                  <p style={{ margin: '0 0 0.75rem', fontWeight: 700, fontSize: '0.9rem', color: 'var(--primary-dark)' }}>
+                    <Zap size={16} color="var(--primary)" style={{ verticalAlign: 'middle', marginRight: 4 }} />
                     Escaneie com o celular
                   </p>
 
                   {/* QR Code — dinâmico com o link de confirmação */}
-                  <div style={{ display: 'inline-block', background: '#fff', padding: '0.75rem', borderRadius: 10, border: '2px solid #bbf7d0', marginBottom: '0.75rem' }}>
+                  <div style={{ display: 'inline-block', background: '#fff', padding: '0.75rem', borderRadius: 10, border: '2px solid var(--primary-border)', marginBottom: '0.75rem' }}>
                     <img
                       src={pixQrUrl || '/qrcode-pagar.png'}
                       alt="QR Code PIX"
@@ -336,20 +347,20 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
                   </div>
 
                   {/* Instrução */}
-                  <p style={{ margin: '0 0 0.75rem', fontSize: '0.78rem', color: '#6b7280', lineHeight: 1.5 }}>
+                  <p style={{ margin: '0 0 0.75rem', fontSize: '0.78rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
                     Mostre este QR Code para o associado escanear com o celular.<br />
                     A confirmação acontece automaticamente.
                   </p>
 
                   {/* Código copia-e-cola PIX */}
-                  <div style={{ borderTop: '1px dashed #bbf7d0', paddingTop: '0.75rem' }}>
-                    <p style={{ margin: '0 0 0.4rem', fontSize: '0.72rem', color: '#065f46', fontWeight: 600 }}>
+                  <div style={{ borderTop: '1px dashed var(--primary-border)', paddingTop: '0.75rem' }}>
+                    <p style={{ margin: '0 0 0.4rem', fontSize: '0.72rem', color: 'var(--primary-dark)', fontWeight: 600 }}>
                       Ou compartilhe o link de confirmação:
                     </p>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', justifyContent: 'center' }}>
                       <code style={{
-                        background: '#dcfce7', padding: '0.3rem 0.6rem', borderRadius: 6,
-                        fontSize: '0.65rem', color: '#065f46', fontWeight: 600,
+                        background: 'var(--surface)', padding: '0.3rem 0.6rem', borderRadius: 6,
+                        fontSize: '0.65rem', color: 'var(--text)', fontWeight: 600, border: '1px solid var(--primary-border)',
                         maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                       }}>
                         {pixLink || 'Gerando código...'}
@@ -360,7 +371,7 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
                         onClick={copiarLink}
                         disabled={!pixLink}
                       >
-                        {copied ? <Check size={16} color="#059669" /> : <Copy size={16} />}
+                        {copied ? <Check size={16} color="var(--primary)" /> : <Copy size={16} />}
                       </button>
                     </div>
                   </div>
@@ -375,10 +386,10 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
                   {!pixError && (
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginTop: '0.75rem' }}>
                       <div style={{
-                        width: 8, height: 8, borderRadius: '50%', background: '#10b981',
+                        width: 8, height: 8, borderRadius: '50%', background: 'var(--primary)',
                         animation: 'pulsar 1.5s ease-in-out infinite',
                       }} />
-                      <span style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 600 }}>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 600 }}>
                         Aguardando confirmação...
                       </span>
                     </div>
@@ -389,9 +400,9 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
 
               {/* Confirmado */}
               {pixStatus === 'confirmed' && (
-                <div style={{ background: '#f0fdf4', padding: '1.5rem', textAlign: 'center' }}>
-                  <CheckCircle size={40} color="#059669" style={{ marginBottom: '0.5rem' }} />
-                  <p style={{ margin: 0, fontWeight: 700, color: '#065f46', fontSize: '1rem' }}>
+                <div style={{ background: 'var(--primary-light)', padding: '1.5rem', textAlign: 'center' }}>
+                  <CheckCircle size={40} color="var(--primary)" style={{ marginBottom: '0.5rem' }} />
+                  <p style={{ margin: 0, fontWeight: 700, color: 'var(--primary-dark)', fontSize: '1rem' }}>
                     Pagamento confirmado! ✓
                   </p>
                 </div>

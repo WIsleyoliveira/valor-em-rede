@@ -1,13 +1,6 @@
-- [x] Revisar integração atual do PIX no frontend e contratos das APIs `api/pix.js` e `api/pix-status.js`
-- [x] Refatorar `src/components/PaymentForm.jsx` para criar cobrança real via API e exibir QR da resposta
-- [x] Implementar polling de status real do pagamento via `api/pix-status.js`
-- [x] Remover dependência de confirmação por `localStorage`/`pagar.html` no fluxo principal
-- [x] Validar build local e checar status git
-- [ ] Commitar correção e subir na `main`
-
-## Ajuste MVP (sem ASAAS) + contador de pagamentos aprovados
-- [x] Refatorar `api/pix.js` para mockar criação de cobrança PIX sem `ASAAS_API_KEY`
-- [x] Refatorar `api/pix-status.js` para retorno simulado de aprovação sem gateway externo
-- [x] Atualizar `src/App.jsx` para passar `transactions` ao `PaymentForm`
-- [x] Atualizar `src/components/PaymentForm.jsx` para exibir quantidade exata já paga após aprovação
-- [ ] Executar teste de caminho crítico (PIX + manual) e validar build
+- [x] Atualizar seção do formulário de pagamento (step 1) para fundo preto
+- [x] Ajustar contraste de textos/inputs/bordas na seção alterada
+- [x] Implementar esquema de cores com contraste para modo claro/escuro
+- [x] Adicionar toggle de tema (claro/escuro) na interface
+- [x] Aplicar tokens de tema no PaymentForm (step 1) sem hardcode
+- [ ] Marcar validação visual concluída
