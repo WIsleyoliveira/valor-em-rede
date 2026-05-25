@@ -1,6 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import { CreditCard, Zap, FileText, Banknote, CheckCircle, ChevronRight, ChevronLeft, Copy, Check, FileCheck, Lock } from 'lucide-react';
 import { fmt, maskMoney, parseMasked, genId, fmtDate, todayLocal } from '../utils/format';
+
+// ── PIX estático — QR Code fixo de R$ 15,00 ──────────────────────────────────
+const PIX_QR_IMAGE   = '/qrcode-pix.png';
+const PIX_COPIA_COLA = '00020126330014BR.GOV.BCB.PIX0111054595012025204000053039865802BR5917MURILO MUNIZ DIAS6005BELEM622605227Nb3sU3Mw0mTa0iB682C1C63040B5D';
 
 const METHODS = [
   { id: 'pix',      label: 'PIX',      icon: Zap,        color: '#059669', desc: 'Instantâneo e gratuito' },
@@ -15,128 +19,21 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
   const [method, setMethod] = useState(null);
   const [receipt, setReceipt] = useState(null);
   const [paidCount, setPaidCount] = useState(0);
-  const [cpf, setCpf]           = useState('');
-  const [cpfError, setCpfError] = useState('');
-
-  // ── Estados do PIX ───────────────────────────────────────────────────────
-  const [pixId, setPixId]       = useState('');
-  const [pixQrUrl, setPixQrUrl] = useState('');
-  const [pixLink, setPixLink]   = useState('');
-  const [copied, setCopied]     = useState(false);
-  const [pixStatus, setPixStatus] = useState('waiting'); // waiting | confirmed
-  const [pixLoading, setPixLoading] = useState(false);
-  const [pixError, setPixError] = useState('');
-  const pollingRef              = useRef(null);
-  const delayRef                = useRef(null);
+  const [copied, setCopied]       = useState(false);
+  const [pixConfirmed, setPixConfirmed] = useState(false);
 
   const name  = user?.name  || '';
   const email = user?.email || '';
 
-  function maskCpf(v) {
-    return v.replace(/\D/g, '').slice(0, 11)
-      .replace(/(\d{3})(\d)/, '$1.$2')
-      .replace(/(\d{3})(\d)/, '$1.$2')
-      .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
-  }
-
-  function cpfValido(v) {
-    const d = v.replace(/\D/g, '');
-    if (d.length !== 11 || /^(\d)\1+$/.test(d)) return false;
-    let s = 0;
-    for (let i = 0; i < 9; i++) s += +d[i] * (10 - i);
-    let r = (s * 10) % 11; if (r === 10 || r === 11) r = 0;
-    if (r !== +d[9]) return false;
-    s = 0;
-    for (let i = 0; i < 10; i++) s += +d[i] * (11 - i);
-    r = (s * 10) % 11; if (r === 10 || r === 11) r = 0;
-    return r === +d[10];
-  }
-
-  // ── Cria cobrança PIX real e inicia polling de status ─────────────────────
-  useEffect(() => {
-    if (step === 3 && method?.id === 'pix') {
-      criarPixEIniciarPolling();
-    }
-
-    if (step !== 3) {
-      clearTimeout(delayRef.current);
-      clearInterval(pollingRef.current);
-      setPixStatus('waiting');
-      setPixLoading(false);
-      setPixError('');
-    }
-  }, [step, method]);
-
-  async function criarPixEIniciarPolling() {
-    clearTimeout(delayRef.current);
-    clearInterval(pollingRef.current);
-    setPixStatus('waiting');
-    setPixLoading(true);
-    setPixError('');
-    setPixId('');
-    setPixQrUrl('');
-    setPixLink('');
-
-    try {
-      const valor = parseMasked(amount);
-      const response = await fetch('/api/pix', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: name || 'Associado',
-          email: email || `associado_${Date.now()}@local.invalid`,
-          value: valor,
-          cpf: cpf.replace(/\D/g, ''),
-          memberId: user?.id || null,
-        }),
-      });
-
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data?.error || 'Falha ao gerar cobrança PIX');
-      }
-
-      const paymentId = data.paymentId;
-      const copyPaste = data.copyPaste || '';
-
-      setPixId(paymentId);
-      setPixLink(copyPaste);
-      setPixQrUrl(copyPaste
-        ? `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(copyPaste)}`
-        : '');
-
-      // Inicia polling — checa status na API a cada 3s
-      // O pagar.html registra a confirmação via /api/pix-confirm e o pix-status retorna CONFIRMED
-      pollingRef.current = setInterval(async () => {
-        try {
-          const stRes = await fetch(`/api/pix-status?id=${encodeURIComponent(paymentId)}`);
-          const stData = await stRes.json();
-          const status = (stData?.status || '').toUpperCase();
-
-          if (['RECEIVED', 'CONFIRMED', 'RECEIVED_IN_CASH'].includes(status)) {
-            clearInterval(pollingRef.current);
-            // Passa nome/valor vindos do servidor (preenchidos pelo associado no pagar.html)
-            const pixData = stData.valor ? { valor: stData.valor, nome: stData.nome } : null;
-            setPixStatus('confirmed');
-            setTimeout(() => confirmarPagamento(paymentId, pixData), 800);
-          }
-        } catch {
-          // mantém polling silencioso
-        }
-      }, 3000);
-    } catch (err) {
-      setPixError(err.message || 'Erro ao gerar PIX');
-    } finally {
-      setPixLoading(false);
-    }
-  }
-
-  useEffect(() => () => { clearTimeout(delayRef.current); clearInterval(pollingRef.current); }, []);
-
-  function copiarLink() {
-    navigator.clipboard.writeText(pixLink);
+  function copiarChavePix() {
+    navigator.clipboard.writeText(PIX_COPIA_COLA);
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
+  }
+
+  function confirmarPixManual() {
+    setPixConfirmed(true);
+    setTimeout(() => confirmarPagamento(null, null), 1000);
   }
 
   function confirmarPagamento(idPix, pixData) {
@@ -193,11 +90,9 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
     setPixId('');
     setPixQrUrl('');
     setPixLink('');
-    setPixStatus('waiting');
     setCopied(false);
+    setPixConfirmed(false);
     setPaidCount(0);
-    setCpf('');
-    setCpfError('');
   }
 
   return (
@@ -315,22 +210,6 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
               </button>
             ))}
           </div>
-          {/* Campo CPF — só aparece quando PIX está selecionado */}
-          {method?.id === 'pix' && (
-            <div style={{ marginBottom: '0.75rem' }}>
-              <label className="form-label">CPF do pagador</label>
-              <input
-                className="form-input"
-                placeholder="000.000.000-00"
-                value={cpf}
-                onChange={e => { setCpf(maskCpf(e.target.value)); setCpfError(''); }}
-                style={{ background: 'var(--input-bg)', color: 'var(--text)', border: `1px solid ${cpfError ? '#ef4444' : 'var(--border)'}` }}
-                inputMode="numeric"
-              />
-              {cpfError && <p style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '0.25rem' }}>{cpfError}</p>}
-            </div>
-          )}
-
           <div style={{ display: 'flex', gap: '0.75rem' }}>
             <button className="btn btn-secondary" onClick={() => setStep(1)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
               <ChevronLeft size={16} /> Voltar
@@ -338,13 +217,7 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
             <button
               className="btn btn-primary"
               disabled={!method}
-              onClick={() => {
-                if (method?.id === 'pix' && !cpfValido(cpf)) {
-                  setCpfError('CPF inválido');
-                  return;
-                }
-                setStep(3);
-              }}
+              onClick={() => setStep(3)}
               style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
             >
               Próximo <ChevronRight size={16} />
@@ -370,87 +243,69 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
             ))}
           </div>
 
-          {/* ── Bloco PIX ── */}
+          {/* ── Bloco PIX estático ── */}
           {method.id === 'pix' && (
-            <div style={{ border: '1px solid var(--primary-border)', borderRadius: 10, overflow: 'hidden' }}>
+            <div style={{ border: '1px solid #bbf7d0', borderRadius: 10, overflow: 'hidden' }}>
 
-              {/* Aguardando pagamento */}
-              {pixStatus === 'waiting' && (
-                <div style={{ background: 'var(--primary-light)', padding: '1.25rem', textAlign: 'center' }}>
-                  <p style={{ margin: '0 0 0.75rem', fontWeight: 700, fontSize: '0.9rem', color: 'var(--primary-dark)' }}>
-                    <Zap size={16} color="var(--primary)" style={{ verticalAlign: 'middle', marginRight: 4 }} />
-                    Escaneie com o celular
+              {/* Aguardando escaneamento */}
+              {!pixConfirmed && (
+                <div style={{ background: '#f0fdf4', padding: '1.25rem', textAlign: 'center' }}>
+                  <p style={{ margin: '0 0 0.5rem', fontWeight: 700, fontSize: '0.9rem', color: '#065f46' }}>
+                    <Zap size={16} color="#059669" style={{ verticalAlign: 'middle', marginRight: 4 }} />
+                    Contribuição mensal — R$ 15,00
+                  </p>
+                  <p style={{ margin: '0 0 0.75rem', fontSize: '0.78rem', color: '#6b7280' }}>
+                    Escaneie o QR Code com o app do banco
                   </p>
 
-                  {/* QR Code — dinâmico com o link de confirmação */}
-                  <div style={{ display: 'inline-block', background: '#fff', padding: '0.75rem', borderRadius: 10, border: '2px solid var(--primary-border)', marginBottom: '0.75rem' }}>
+                  {/* QR Code estático */}
+                  <div style={{ display: 'inline-block', background: '#fff', padding: '0.75rem', borderRadius: 10, border: '2px solid #bbf7d0', marginBottom: '1rem' }}>
                     <img
-                      src={pixQrUrl || '/qrcode-pagar.png'}
-                      alt="QR Code PIX"
-                      width={180}
-                      height={180}
+                      src={PIX_QR_IMAGE}
+                      alt="QR Code PIX R$ 15,00"
+                      width={200}
+                      height={200}
                       style={{ display: 'block' }}
                     />
                   </div>
 
-                  {/* Instrução */}
-                  <p style={{ margin: '0 0 0.75rem', fontSize: '0.78rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
-                    Mostre este QR Code para o associado escanear com o celular.<br />
-                    A confirmação acontece automaticamente.
-                  </p>
-
-                  {/* Código copia-e-cola PIX */}
-                  <div style={{ borderTop: '1px dashed var(--primary-border)', paddingTop: '0.75rem' }}>
-                    <p style={{ margin: '0 0 0.4rem', fontSize: '0.72rem', color: 'var(--primary-dark)', fontWeight: 600 }}>
-                      Ou compartilhe o link de confirmação:
+                  {/* Copia e cola */}
+                  <div style={{ borderTop: '1px dashed #bbf7d0', paddingTop: '0.75rem', marginBottom: '0.75rem' }}>
+                    <p style={{ margin: '0 0 0.4rem', fontSize: '0.75rem', color: '#065f46', fontWeight: 600 }}>
+                      Ou use o código Pix Copia e Cola:
                     </p>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', justifyContent: 'center' }}>
                       <code style={{
-                        background: 'var(--surface)', padding: '0.3rem 0.6rem', borderRadius: 6,
-                        fontSize: '0.65rem', color: 'var(--text)', fontWeight: 600, border: '1px solid var(--primary-border)',
+                        background: '#dcfce7', padding: '0.3rem 0.6rem', borderRadius: 6,
+                        fontSize: '0.62rem', color: '#065f46', fontWeight: 600,
                         maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                       }}>
-                        {pixLink || 'Gerando código...'}
+                        {PIX_COPIA_COLA}
                       </code>
-                      <button
-                        className="btn btn-ghost"
-                        style={{ padding: '0.3rem', flexShrink: 0 }}
-                        onClick={copiarLink}
-                        disabled={!pixLink}
-                      >
-                        {copied ? <Check size={16} color="var(--primary)" /> : <Copy size={16} />}
+                      <button className="btn btn-ghost" style={{ padding: '0.3rem', flexShrink: 0 }} onClick={copiarChavePix}>
+                        {copied ? <Check size={16} color="#059669" /> : <Copy size={16} />}
                       </button>
                     </div>
+                    {copied && <p style={{ fontSize: '0.72rem', color: '#059669', marginTop: '0.3rem' }}>✓ Código copiado!</p>}
                   </div>
 
-                  {pixError && (
-                    <p style={{ marginTop: '0.75rem', fontSize: '0.75rem', color: '#b91c1c', fontWeight: 600 }}>
-                      {pixError}
-                    </p>
-                  )}
-
-                  {/* Indicador pulsante */}
-                  {!pixError && (
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginTop: '0.75rem' }}>
-                      <div style={{
-                        width: 8, height: 8, borderRadius: '50%', background: 'var(--primary)',
-                        animation: 'pulsar 1.5s ease-in-out infinite',
-                      }} />
-                      <span style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 600 }}>
-                        Aguardando confirmação...
-                      </span>
-                    </div>
-                  )}
-
+                  {/* Botão confirmar após pagar */}
+                  <button
+                    className="btn btn-primary"
+                    onClick={confirmarPixManual}
+                    style={{ width: '100%', justifyContent: 'center', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                  >
+                    <CheckCircle size={16} /> Já realizei o pagamento
+                  </button>
                 </div>
               )}
 
               {/* Confirmado */}
-              {pixStatus === 'confirmed' && (
-                <div style={{ background: 'var(--primary-light)', padding: '1.5rem', textAlign: 'center' }}>
-                  <CheckCircle size={40} color="var(--primary)" style={{ marginBottom: '0.5rem' }} />
-                  <p style={{ margin: 0, fontWeight: 700, color: 'var(--primary-dark)', fontSize: '1rem' }}>
-                    Pagamento confirmado! ✓
+              {pixConfirmed && (
+                <div style={{ background: '#f0fdf4', padding: '1.5rem', textAlign: 'center' }}>
+                  <CheckCircle size={40} color="#059669" style={{ marginBottom: '0.5rem' }} />
+                  <p style={{ margin: 0, fontWeight: 700, color: '#065f46', fontSize: '1rem' }}>
+                    Pagamento confirmado!
                   </p>
                 </div>
               )}
