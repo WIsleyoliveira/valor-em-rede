@@ -212,6 +212,8 @@ export default function App() {
           pendingCount={pending.length}
           syncing={syncing}
           onSyncNow={syncPending}
+          theme={theme}
+          onToggleTheme={() => setTheme(prev => prev === 'dark' ? 'light' : 'dark')}
         />
         <main style={{ flex: 1, overflow: 'auto' }}>
           {renderPage()}

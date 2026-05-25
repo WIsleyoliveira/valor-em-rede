@@ -1,6 +1,6 @@
-import { Wifi, WifiOff, LogOut, Building2, RefreshCw, CloudOff } from 'lucide-react';
+import { Wifi, WifiOff, LogOut, Building2, RefreshCw, CloudOff, Sun, Moon } from 'lucide-react';
 
-export default function Header({ user, ollamaStatus, onLogout, isOnline, pendingCount, syncing, onSyncNow }) {
+export default function Header({ user, ollamaStatus, onLogout, isOnline, pendingCount, syncing, onSyncNow, theme, onToggleTheme }) {
   return (
     <header className="topbar">
       {/* Left — logo */}
@@ -49,6 +49,19 @@ export default function Header({ user, ollamaStatus, onLogout, isOnline, pending
             : <><WifiOff size={13} color="#9ca3af" /><span style={{ fontSize: '0.72rem', color: '#9ca3af' }}>IA off</span></>
           }
         </div>
+
+        {/* Theme toggle */}
+        <button
+          className="btn btn-secondary"
+          style={{ padding: '0.4rem 0.55rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+          onClick={onToggleTheme}
+          title={theme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro'}
+        >
+          {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
+          <span className="hide-mobile" style={{ fontSize: '0.75rem' }}>
+            {theme === 'dark' ? 'Claro' : 'Escuro'}
+          </span>
+        </button>
 
         {/* User avatar + name */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
