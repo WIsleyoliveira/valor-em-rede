@@ -2,22 +2,22 @@ import { useState } from 'react';
 import { CreditCard, Zap, FileText, Banknote, CheckCircle, ChevronRight, ChevronLeft, Copy, Check, FileCheck, Lock } from 'lucide-react';
 import { fmt, maskMoney, parseMasked, genId, fmtDate, todayLocal } from '../utils/format';
 
-// ── PIX estático — QR Code fixo de R$ 15,00 ──────────────────────────────────
+// ── PIX estático — QR Code fixo de R$ 15,00 (Itaú) ───────────────────────────
 const PIX_QR_IMAGE   = '/qrcode-pix.png';
 const PIX_COPIA_COLA = '00020126330014BR.GOV.BCB.PIX0111054595012025204000053039865802BR5917MURILO MUNIZ DIAS6005BELEM622605227Nb3sU3Mw0mTa0iB682C1C63040B5D';
 
 const METHODS = [
-  { id: 'pix',      label: 'PIX',      icon: Zap,        color: 'var(--primary)', desc: 'Instantâneo e gratuito' },
+  { id: 'pix',      label: 'PIX',      icon: Zap,        color: '#059669', desc: 'Instantâneo e gratuito' },
   { id: 'boleto',   label: 'Boleto',   icon: FileText,   color: '#3b82f6', desc: 'Vence em 3 dias úteis'  },
   { id: 'credito',  label: 'Crédito',  icon: CreditCard, color: '#8b5cf6', desc: 'Parcelamento disponível' },
   { id: 'dinheiro', label: 'Dinheiro', icon: Banknote,   color: '#f59e0b', desc: 'Pagamento presencial'    },
 ];
 
 export default function PaymentForm({ onAdd, onShowReceipt, user, transactions = [] }) {
-  const [step, setStep]     = useState(1);
-  const [amount, setAmount] = useState('');
-  const [method, setMethod] = useState(null);
-  const [receipt, setReceipt] = useState(null);
+  const [step, setStep]           = useState(1);
+  const [amount, setAmount]       = useState('');
+  const [method, setMethod]       = useState(null);
+  const [receipt, setReceipt]     = useState(null);
   const [paidCount, setPaidCount] = useState(0);
   const [copied, setCopied]       = useState(false);
   const [pixConfirmed, setPixConfirmed] = useState(false);
@@ -33,33 +33,29 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
 
   function confirmarPixManual() {
     setPixConfirmed(true);
-    setTimeout(() => confirmarPagamento(null, null), 1000);
+    setTimeout(() => confirmarPagamento(), 900);
   }
 
-  function confirmarPagamento(idPix, pixData) {
-    clearInterval(pollingRef.current);
-    // Se veio do pagar.html (QR Code físico), usa nome/valor de lá; senão usa os do formulário
-    const value = (pixData?.valor && pixData.valor > 0) ? pixData.valor : parseMasked(amount);
-    const pagadorName = pixData?.nome || name;
+  function confirmarPagamento() {
+    const value = parseMasked(amount);
     const rec = {
       id: genId(),
       type: 'payment',
-      name: pagadorName,
+      name,
       email,
       value,
       method: method.id,
       methodLabel: method.label,
       date: todayLocal(),
       status: 'confirmed',
-      pix_id: idPix || pixId,
     };
 
     const normalizedEmail = (email || '').trim().toLowerCase();
-    const normalizedName = (pagadorName || '').trim().toLowerCase();
-    const previousPaidCount = (transactions || []).filter((t) => {
+    const normalizedName  = (name  || '').trim().toLowerCase();
+    const previousPaidCount = (transactions || []).filter(t => {
       if (t.type !== 'payment') return false;
       const tEmail = (t.email || '').trim().toLowerCase();
-      const tName = (t.name || '').trim().toLowerCase();
+      const tName  = (t.name  || '').trim().toLowerCase();
       if (normalizedEmail) return tEmail === normalizedEmail;
       return normalizedName ? tName === normalizedName : false;
     }).length;
@@ -71,25 +67,15 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
   }
 
   function voltarDoStep3() {
-    clearTimeout(delayRef.current);
-    clearInterval(pollingRef.current);
-    setPixId('');
-    setPixQrUrl('');
-    setPixLink('');
-    setPixStatus('waiting');
+    setPixConfirmed(false);
     setStep(2);
   }
 
   function reset() {
-    clearTimeout(delayRef.current);
-    clearInterval(pollingRef.current);
     setStep(1);
     setAmount('');
     setMethod(null);
     setReceipt(null);
-    setPixId('');
-    setPixQrUrl('');
-    setPixLink('');
     setCopied(false);
     setPixConfirmed(false);
     setPaidCount(0);
@@ -128,21 +114,9 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
         </div>
       )}
 
-      {/* ══════════════════════════════════════════════
-          STEP 1 — Dados e valor
-      ══════════════════════════════════════════════ */}
+      {/* STEP 1 — Dados e valor */}
       {step === 1 && (
-        <div
-          className="card"
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '1rem',
-            background: 'var(--surface)',
-            color: 'var(--text)',
-            border: '1px solid var(--border)',
-          }}
-        >
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <div>
             <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
               Nome completo <Lock size={11} color="var(--text-muted)" />
@@ -178,9 +152,7 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
         </div>
       )}
 
-      {/* ══════════════════════════════════════════════
-          STEP 2 — Método de pagamento
-      ══════════════════════════════════════════════ */}
+      {/* STEP 2 — Método de pagamento */}
       {step === 2 && (
         <div className="card">
           <p style={{ fontWeight: 600, marginBottom: '1rem', fontSize: '0.95rem' }}>Forma de pagamento:</p>
@@ -194,14 +166,14 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
                   padding: '1rem',
                   border: `2px solid ${method?.id === m.id ? m.color : 'var(--border)'}`,
                   borderRadius: 10,
-                  background: method?.id === m.id ? m.color + '10' : 'var(--surface)',
+                  background: method?.id === m.id ? m.color + '18' : 'var(--surface)',
                   cursor: 'pointer', transition: 'all 0.15s',
                 }}
               >
                 <div style={{ background: m.color + '18', borderRadius: 8, padding: '0.5rem' }}>
                   <m.icon size={22} color={m.color} />
                 </div>
-                <span style={{ fontWeight: 600, fontSize: '0.875rem', color: method?.id === m.id ? m.color : 'var(--text-primary)' }}>
+                <span style={{ fontWeight: 600, fontSize: '0.875rem', color: method?.id === m.id ? m.color : 'var(--text)' }}>
                   {m.label}
                 </span>
                 <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textAlign: 'center' }}>
@@ -226,9 +198,7 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
         </div>
       )}
 
-      {/* ══════════════════════════════════════════════
-          STEP 3 — Confirmar + QR Code
-      ══════════════════════════════════════════════ */}
+      {/* STEP 3 — Confirmar pagamento */}
       {step === 3 && method && (
         <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700 }}>Confirme o pagamento</h3>
@@ -247,19 +217,18 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
           {method.id === 'pix' && (
             <div style={{ border: '1px solid var(--primary-border)', borderRadius: 10, overflow: 'hidden' }}>
 
-              {/* Aguardando escaneamento */}
-              {!pixConfirmed && (
+              {!pixConfirmed ? (
                 <div style={{ background: 'var(--primary-light)', padding: '1.25rem', textAlign: 'center' }}>
-                  <p style={{ margin: '0 0 0.5rem', fontWeight: 700, fontSize: '0.9rem', color: 'var(--primary-dark)' }}>
-                    <Zap size={16} color="#059669" style={{ verticalAlign: 'middle', marginRight: 4 }} />
+                  <p style={{ margin: '0 0 0.25rem', fontWeight: 700, fontSize: '0.9rem', color: 'var(--primary-dark)' }}>
+                    <Zap size={16} color="var(--primary)" style={{ verticalAlign: 'middle', marginRight: 4 }} />
                     Contribuição mensal — R$ 15,00
                   </p>
                   <p style={{ margin: '0 0 0.75rem', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                    Escaneie o QR Code com o app do banco
+                    Escaneie com o app do seu banco
                   </p>
 
                   {/* QR Code estático */}
-                  <div style={{ display: 'inline-block', background: 'var(--surface)', padding: '0.75rem', borderRadius: 10, border: '2px solid var(--primary-border)', marginBottom: '1rem' }}>
+                  <div style={{ display: 'inline-block', background: '#fff', padding: '0.75rem', borderRadius: 10, border: '2px solid var(--primary-border)', marginBottom: '1rem' }}>
                     <img
                       src={PIX_QR_IMAGE}
                       alt="QR Code PIX R$ 15,00"
@@ -272,24 +241,24 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
                   {/* Copia e cola */}
                   <div style={{ borderTop: '1px dashed var(--primary-border)', paddingTop: '0.75rem', marginBottom: '0.75rem' }}>
                     <p style={{ margin: '0 0 0.4rem', fontSize: '0.75rem', color: 'var(--primary-dark)', fontWeight: 600 }}>
-                      Ou use o código Pix Copia e Cola:
+                      Ou use o PIX Copia e Cola:
                     </p>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', justifyContent: 'center' }}>
                       <code style={{
-                        background: 'var(--primary-border)', padding: '0.3rem 0.6rem', borderRadius: 6,
-                        fontSize: '0.62rem', color: 'var(--primary-dark)', fontWeight: 600,
+                        background: 'var(--surface)', padding: '0.3rem 0.6rem', borderRadius: 6,
+                        fontSize: '0.62rem', color: 'var(--text)', fontWeight: 600,
+                        border: '1px solid var(--primary-border)',
                         maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                       }}>
                         {PIX_COPIA_COLA}
                       </code>
                       <button className="btn btn-ghost" style={{ padding: '0.3rem', flexShrink: 0 }} onClick={copiarChavePix}>
-                        {copied ? <Check size={16} color="#059669" /> : <Copy size={16} />}
+                        {copied ? <Check size={16} color="var(--primary)" /> : <Copy size={16} />}
                       </button>
                     </div>
                     {copied && <p style={{ fontSize: '0.72rem', color: 'var(--primary)', marginTop: '0.3rem' }}>✓ Código copiado!</p>}
                   </div>
 
-                  {/* Botão confirmar após pagar */}
                   <button
                     className="btn btn-primary"
                     onClick={confirmarPixManual}
@@ -298,14 +267,11 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
                     <CheckCircle size={16} /> Já realizei o pagamento
                   </button>
                 </div>
-              )}
-
-              {/* Confirmado */}
-              {pixConfirmed && (
+              ) : (
                 <div style={{ background: 'var(--primary-light)', padding: '1.5rem', textAlign: 'center' }}>
-                  <CheckCircle size={40} color="#059669" style={{ marginBottom: '0.5rem' }} />
+                  <CheckCircle size={40} color="var(--primary)" style={{ marginBottom: '0.5rem' }} />
                   <p style={{ margin: 0, fontWeight: 700, color: 'var(--primary-dark)', fontSize: '1rem' }}>
-                    Pagamento confirmado!
+                    Pagamento confirmado! ✓
                   </p>
                 </div>
               )}
@@ -317,17 +283,15 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
             <button
               className="btn btn-secondary"
               onClick={voltarDoStep3}
-              disabled={pixStatus === 'confirmed'}
+              disabled={pixConfirmed}
               style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
             >
               <ChevronLeft size={16} /> Voltar
             </button>
-
-            {/* Outros métodos — confirmação manual */}
             {method.id !== 'pix' && (
               <button
                 className="btn btn-primary"
-                onClick={() => confirmarPagamento(null)}
+                onClick={() => confirmarPagamento()}
                 style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
               >
                 <CheckCircle size={16} /> Confirmar pagamento
@@ -337,13 +301,11 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
         </div>
       )}
 
-      {/* ══════════════════════════════════════════════
-          STEP 4 — Sucesso
-      ══════════════════════════════════════════════ */}
+      {/* STEP 4 — Sucesso */}
       {step === 4 && receipt && (
         <div className="card" style={{ textAlign: 'center', padding: '2rem 1rem' }}>
           <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--primary-light)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem' }}>
-            <CheckCircle size={36} color="#059669" />
+            <CheckCircle size={36} color="var(--primary)" />
           </div>
           <h3 style={{ margin: '0 0 0.25rem', color: 'var(--primary-dark)', fontSize: '1.1rem' }}>Pagamento confirmado!</h3>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: '0 0 0.25rem' }}>
@@ -378,13 +340,6 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
           </div>
         </div>
       )}
-
-      <style>{`
-        @keyframes pulsar {
-          0%, 100% { opacity: 1; transform: scale(1); }
-          50%       { opacity: 0.4; transform: scale(0.8); }
-        }
-      `}</style>
     </div>
   );
 }
