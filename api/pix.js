@@ -7,7 +7,7 @@ export const config = {
 const ASAAS_URL = process.env.ASAAS_URL || 'https://sandbox.asaas.com/api/v3';
 
 // CPF fictício válido para sandbox — o Asaas exige CPF mas no sandbox qualquer um válido serve
-const CPF_SANDBOX = '00000000000';
+const CPF_SANDBOX = '24971563792';
 
 async function getOrCreateCustomer(name, email, apiKey) {
   // 1. Busca cliente existente pelo e-mail
