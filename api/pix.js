@@ -1,68 +1,52 @@
-// ─── api/pix.js — Vercel Serverless Function (MVP sem gateway externo) ──────
-// Gera uma cobrança PIX simulada para desenvolvimento/demo sem ASAAS_API_KEY.
+// ─── api/pix.js — Vercel Serverless Function (Asaas Sandbox REAL) ────────────
+// Gera cobrança PIX real no Asaas sandbox e retorna QR Code + copia-e-cola
+// Variáveis necessárias no Vercel/env:
+//   ASAAS_API_KEY  → chave do sandbox (começa com $aact_hmlg_...)
+//   ASAAS_URL      → https://sandbox.asaas.com/api/v3
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const config = {
   api: { bodyParser: true },
 };
 
-function makeConfirmationUrl(req, paymentId, value, name) {
-  const proto = req.headers['x-forwarded-proto'] || 'http';
-  const host  = req.headers['x-forwarded-host'] || req.headers.host || 'localhost:5173';
-  const base  = `${proto}://${host}`;
-  const params = new URLSearchParams({
-    id:    paymentId,
-    valor: Number(value || 0).toFixed(2),
-    nome:  name || 'Associado',
+const ASAAS_URL = process.env.ASAAS_URL || 'https://sandbox.asaas.com/api/v3';
+
+// ── Busca ou cria cliente no Asaas pelo e-mail ────────────────────────────────
+async function getOrCreateCustomer(name, email, apiKey) {
+  // 1. Busca cliente existente
+  const search = await fetch(
+    `${ASAAS_URL}/customers?email=${encodeURIComponent(email)}&limit=1`,
+    {
+      headers: {
+        'access_token': apiKey,
+        'User-Agent': 'ValorEmRede/1.0',
+      },
+    }
+  );
+  const searchData = await search.json();
+  if (searchData?.data?.length > 0) {
+    return searchData.data[0].id;
+  }
+
+  // 2. Cria novo cliente
+  const create = await fetch(`${ASAAS_URL}/customers`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'access_token': apiKey,
+      'User-Agent': 'ValorEmRede/1.0',
+    },
+    body: JSON.stringify({
+      name,
+      email,
+      externalReference: email,
+    }),
   });
-  return `${base}/pagar.html?${params.toString()}`;
-}
-
-function makeMockQrBase64(paymentId, value) {
-  const svg = `
-<svg xmlns="http://www.w3.org/2000/svg" width="220" height="220" viewBox="0 0 220 220">
-  <rect width="220" height="220" fill="#ffffff"/>
-  <rect x="10" y="10" width="200" height="200" fill="none" stroke="#111827" stroke-width="4"/>
-  <rect x="24" y="24" width="44" height="44" fill="#111827"/>
-  <rect x="152" y="24" width="44" height="44" fill="#111827"/>
-  <rect x="24" y="152" width="44" height="44" fill="#111827"/>
-  <rect x="84" y="24" width="8" height="8" fill="#111827"/>
-  <rect x="100" y="24" width="8" height="8" fill="#111827"/>
-  <rect x="116" y="24" width="8" height="8" fill="#111827"/>
-  <rect x="84" y="40" width="8" height="8" fill="#111827"/>
-  <rect x="116" y="40" width="8" height="8" fill="#111827"/>
-  <rect x="84" y="56" width="8" height="8" fill="#111827"/>
-  <rect x="100" y="56" width="8" height="8" fill="#111827"/>
-  <rect x="116" y="56" width="8" height="8" fill="#111827"/>
-  <rect x="84" y="84" width="8" height="8" fill="#111827"/>
-  <rect x="100" y="84" width="8" height="8" fill="#111827"/>
-  <rect x="116" y="84" width="8" height="8" fill="#111827"/>
-  <rect x="132" y="84" width="8" height="8" fill="#111827"/>
-  <rect x="148" y="84" width="8" height="8" fill="#111827"/>
-  <rect x="164" y="84" width="8" height="8" fill="#111827"/>
-  <rect x="84" y="100" width="8" height="8" fill="#111827"/>
-  <rect x="116" y="100" width="8" height="8" fill="#111827"/>
-  <rect x="148" y="100" width="8" height="8" fill="#111827"/>
-  <rect x="164" y="100" width="8" height="8" fill="#111827"/>
-  <rect x="84" y="116" width="8" height="8" fill="#111827"/>
-  <rect x="100" y="116" width="8" height="8" fill="#111827"/>
-  <rect x="132" y="116" width="8" height="8" fill="#111827"/>
-  <rect x="164" y="116" width="8" height="8" fill="#111827"/>
-  <rect x="84" y="132" width="8" height="8" fill="#111827"/>
-  <rect x="116" y="132" width="8" height="8" fill="#111827"/>
-  <rect x="132" y="132" width="8" height="8" fill="#111827"/>
-  <rect x="148" y="132" width="8" height="8" fill="#111827"/>
-  <rect x="164" y="132" width="8" height="8" fill="#111827"/>
-  <rect x="84" y="148" width="8" height="8" fill="#111827"/>
-  <rect x="100" y="148" width="8" height="8" fill="#111827"/>
-  <rect x="116" y="148" width="8" height="8" fill="#111827"/>
-  <rect x="132" y="148" width="8" height="8" fill="#111827"/>
-  <rect x="148" y="148" width="8" height="8" fill="#111827"/>
-  <text x="110" y="206" text-anchor="middle" font-size="10" fill="#374151" font-family="Arial">PIX MOCK ${String(value || 0)}</text>
-  <text x="110" y="216" text-anchor="middle" font-size="8" fill="#6b7280" font-family="Arial">${paymentId.slice(-10)}</text>
-</svg>`.trim();
-
-  return Buffer.from(svg, 'utf8').toString('base64');
+  const customer = await create.json();
+  if (!customer?.id) {
+    throw new Error('Falha ao criar cliente no Asaas: ' + JSON.stringify(customer));
+  }
+  return customer.id;
 }
 
 export default async function handler(req, res) {
@@ -72,25 +56,86 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  let body = req.body;
-  if (typeof body === 'string') {
-    try { body = JSON.parse(body); } catch { body = {}; }
+  const apiKey = process.env.ASAAS_API_KEY;
+
+  // ── Sem chave: cai no modo mock para desenvolvimento local ────────────────
+  if (!apiKey) {
+    console.warn('[PIX] ASAAS_API_KEY não configurada — usando mock');
+    let body = req.body;
+    if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = {}; } }
+    const { name, value } = body || {};
+    const paymentId = `pix_mock_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const proto = req.headers['x-forwarded-proto'] || 'http';
+    const host  = req.headers['x-forwarded-host'] || req.headers.host || 'localhost:5173';
+    const confirmUrl = `${proto}://${host}/pagar.html?id=${paymentId}&valor=${Number(value||0).toFixed(2)}&nome=${encodeURIComponent(name||'Associado')}`;
+    return res.status(200).json({
+      paymentId,
+      copyPaste: confirmUrl,
+      expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+      status: 'PENDING',
+      simulated: true,
+    });
   }
 
-  const { name, email, value } = body || {};
+  let body = req.body;
+  if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = {}; } }
+
+  const { name, email, value, memberId } = body || {};
   if (!name || !email || !value) {
     return res.status(400).json({ error: 'name, email e value são obrigatórios' });
   }
 
-  const paymentId = `pix_mock_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-  const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+  try {
+    // 1. Garante cliente no Asaas
+    const customerId = await getOrCreateCustomer(name, email, apiKey);
 
-  return res.status(200).json({
-    paymentId,
-    qrCodeImage: makeMockQrBase64(paymentId, value),
-    copyPaste: makeConfirmationUrl(req, paymentId, value, name),
-    expiresAt,
-    status: 'PENDING',
-    simulated: true,
-  });
+    // 2. Vencimento = hoje (PIX no sandbox aceita vencimento no dia)
+    const dueDate = new Date().toISOString().split('T')[0];
+
+    // 3. Cria a cobrança PIX
+    const paymentRes = await fetch(`${ASAAS_URL}/payments`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'access_token': apiKey,
+        'User-Agent': 'ValorEmRede/1.0',
+      },
+      body: JSON.stringify({
+        customer: customerId,
+        billingType: 'PIX',
+        value: Number(value),
+        dueDate,
+        description: `Contribuição mensal — ${name}`,
+        externalReference: memberId || email,
+      }),
+    });
+
+    const payment = await paymentRes.json();
+    if (!payment?.id) {
+      console.error('[PIX] Erro ao criar cobrança:', JSON.stringify(payment));
+      return res.status(500).json({ error: 'Falha ao criar cobrança no Asaas', detail: payment });
+    }
+
+    // 4. Busca o QR Code PIX
+    const qrRes = await fetch(`${ASAAS_URL}/payments/${payment.id}/pixQrCode`, {
+      headers: {
+        'access_token': apiKey,
+        'User-Agent': 'ValorEmRede/1.0',
+      },
+    });
+    const qrData = await qrRes.json();
+
+    return res.status(200).json({
+      paymentId: payment.id,
+      copyPaste: qrData.payload,          // código copia-e-cola do PIX
+      qrCodeBase64: qrData.encodedImage,  // base64 da imagem do QR Code
+      expiresAt: qrData.expirationDate,
+      status: payment.status,
+      simulated: false,
+    });
+
+  } catch (err) {
+    console.error('[PIX] exception:', err.message);
+    return res.status(500).json({ error: err.message });
+  }
 }

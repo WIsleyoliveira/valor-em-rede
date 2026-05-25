@@ -78,9 +78,14 @@ export default function PaymentForm({ onAdd, onShowReceipt, user, transactions =
 
       setPixId(paymentId);
       setPixLink(copyPaste);
-      setPixQrUrl(copyPaste
-        ? `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(copyPaste)}`
-        : '');
+      // Prioriza QR Code base64 do Asaas; fallback para api.qrserver.com
+      setPixQrUrl(
+        data.qrCodeBase64
+          ? `data:image/png;base64,${data.qrCodeBase64}`
+          : copyPaste
+            ? `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(copyPaste)}`
+            : '/qrcode-pagar.png'
+      );
 
       // Inicia polling — checa status na API a cada 3s
       // O pagar.html registra a confirmação via /api/pix-confirm e o pix-status retorna CONFIRMED
