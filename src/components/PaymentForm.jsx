@@ -3,7 +3,7 @@ import { CreditCard, Zap, FileText, Banknote, CheckCircle, ChevronRight, Chevron
 import { fmt, maskMoney, parseMasked, genId, fmtDate, todayLocal } from '../utils/format';
 
 // ── PIX estático — QR Code fixo de R$ 15,00 (Itaú) ───────────────────────────
-const PIX_QR_IMAGE   = '/qrcode-pix.png';
+const PIX_QR_IMAGE   = '/qrcode-pix.jpeg';
 const PIX_COPIA_COLA = '00020126330014BR.GOV.BCB.PIX0111054595012025204000053039865802BR5917MURILO MUNIZ DIAS6005BELEM622605227Nb3sU3Mw0mTa0iB682C1C63040B5D';
 
 const METHODS = [
