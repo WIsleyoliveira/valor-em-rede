@@ -174,7 +174,7 @@ export default function App() {
           ))}
         </nav>
 
-        <div style={{ padding: '1rem', borderTop: '1px solid var(--border)' }}>
+        <div className="theme-toggle-desktop" style={{ padding: '1rem', borderTop: '1px solid var(--border)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
             <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <span style={{ color: '#fff', fontWeight: 700, fontSize: '0.75rem' }}>{user.name?.charAt(0)?.toUpperCase()}</span>
@@ -186,11 +186,12 @@ export default function App() {
           </div>
           <button
             className="btn btn-secondary"
-            style={{ width: '100%', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem', justifyContent: 'flex-start', padding: '0.4rem 0.5rem', fontSize: '0.8rem' }}
+            style={{ width: '100%', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.4rem 0.5rem' }}
             onClick={() => setTheme(prev => prev === 'dark' ? 'light' : 'dark')}
+            title={theme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro'}
+            aria-label={theme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro'}
           >
-            {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
-            {theme === 'dark' ? 'Modo claro' : 'Modo escuro'}
+            {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
           </button>
           <button
             className="btn btn-ghost"
@@ -204,27 +205,6 @@ export default function App() {
 
       {/* Main */}
       <div className="main-content">
-        <button
-          className="btn btn-secondary"
-          onClick={() => setTheme(prev => prev === 'dark' ? 'light' : 'dark')}
-          style={{
-            position: 'fixed',
-            right: 12,
-            bottom: 84,
-            zIndex: 70,
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.4rem',
-            boxShadow: 'var(--shadow)',
-            padding: '0.55rem 0.75rem',
-          }}
-          title={theme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro'}
-        >
-          {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
-          <span style={{ fontSize: '0.8rem', fontWeight: 700 }}>
-            {theme === 'dark' ? 'Modo claro' : 'Modo escuro'}
-          </span>
-        </button>
         <Header
           user={user}
           ollamaStatus={ollamaStatus}

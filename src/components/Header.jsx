@@ -50,17 +50,15 @@ export default function Header({ user, ollamaStatus, onLogout, isOnline, pending
           }
         </div>
 
-        {/* Theme toggle */}
+        {/* Theme toggle (mobile only) */}
         <button
-          className="btn btn-secondary"
-          style={{ padding: '0.4rem 0.55rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+          className="btn btn-secondary show-mobile"
+          style={{ padding: '0.4rem 0.55rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           onClick={onToggleTheme}
           title={theme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro'}
+          aria-label={theme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro'}
         >
-          {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
-          <span className="hide-mobile" style={{ fontSize: '0.75rem' }}>
-            {theme === 'dark' ? 'Claro' : 'Escuro'}
-          </span>
+          {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
         </button>
 
         {/* User avatar + name */}
