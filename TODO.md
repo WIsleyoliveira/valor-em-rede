@@ -1,0 +1,9 @@
+- [x] Atualizar seção do formulário de pagamento (step 1) para fundo preto
+- [x] Ajustar contraste de textos/inputs/bordas na seção alterada
+- [x] Implementar esquema de cores com contraste para modo claro/escuro
+- [x] Adicionar toggle de tema (claro/escuro) na interface
+- [x] Aplicar tokens de tema no PaymentForm (step 1) sem hardcode
+- [ ] Garantir botão de tema visível com fallback fixo na UI
+- [ ] Forçar refresh de cache/SW antigos no carregamento
+- [ ] Subir correção direto na branch main
+- [ ] Marcar validação visual concluída

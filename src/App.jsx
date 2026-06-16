@@ -1,0 +1,241 @@
+import { useState, useEffect } from 'react';
+import {
+  LayoutDashboard, CreditCard, Heart, Receipt, History,
+  Eye, Upload, Brain, Building2, LogOut, Sun, Moon
+} from 'lucide-react';
+import LoginScreen from './components/LoginScreen';
+import Header from './components/Header';
+import Dashboard from './components/Dashboard';
+import PaymentForm from './components/PaymentForm';
+import DonationForm from './components/DonationForm';
+import ExpenseForm from './components/ExpenseForm';
+import HistoryView from './components/History';
+import TransparencyView from './components/TransparencyView';
+import AmazonPeopleExport from './components/AmazonPeopleExport';
+import AIRecommendations from './components/AIRecommendations';
+import ReceiptModal from './components/ReceiptModal';
+import SyncToast from './components/SyncToast';
+import { useStore } from './hooks/useStore';
+import { useOllama } from './hooks/useOllama';
+import { useSync, requestNotificationPermission, sendLocalNotification } from './hooks/useSync';
+import { supabase, isSupabaseEnabled } from './services/supabase';
+
+// Nav configs per role
+const MEMBER_NAV = [
+  { id: 'payment',      label: 'Pagar',         icon: CreditCard },
+  { id: 'donation',     label: 'Doação',         icon: Heart },
+  { id: 'history',      label: 'Histórico',      icon: History },
+  { id: 'transparency', label: 'Transparência',  icon: Eye },
+  { id: 'expenses',     label: 'Gastos',         icon: Receipt },
+];
+const MANAGER_NAV = [
+  { id: 'dashboard',    label: 'Painel',         icon: LayoutDashboard },
+  { id: 'expense',      label: 'Despesas',       icon: Receipt },
+  { id: 'ai',           label: 'IA',             icon: Brain },
+  { id: 'export',       label: 'Exportar',       icon: Upload },
+  { id: 'transparency', label: 'Transparência',  icon: Eye },
+  { id: 'history',      label: 'Histórico',      icon: History },
+];
+
+export default function App() {
+  // Restaura user/page do localStorage ANTES de qualquer render (síncrono)
+  const [user, setUser] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('ver_user') || 'null'); } catch { return null; }
+  });
+  const [page, setPage] = useState(() => localStorage.getItem('ver_page') || null);
+  const [receiptTx, setReceiptTx] = useState(null);
+  const [theme, setTheme] = useState(() => localStorage.getItem('ver_theme') || 'light');
+  const { transactions, totals, categoryBreakdown, memberStats, addTransaction, addDonation, addPayment, pending, setPending, setTransactions } = useStore();
+  const { status: ollamaStatus, recommendations, loadingRec, fetchRecommendations } = useOllama();
+  const { isOnline, syncing, toast, showToast, syncPending } = useSync(pending, setPending, setTransactions);
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('ver_theme', theme);
+  }, [theme]);
+
+  // Valida sessão do Supabase em background (sem bloquear a UI)
+  useEffect(() => {
+    if (!isSupabaseEnabled) return;
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session?.user) {
+        // Token expirado — limpa cache e manda pro login
+        localStorage.removeItem('ver_user');
+        localStorage.removeItem('ver_page');
+        setUser(null);
+        setPage(null);
+      }
+    });
+  }, []);
+
+  // Salva a página atual no localStorage sempre que mudar
+  const navigateTo = (pageId) => {
+    setPage(pageId);
+    localStorage.setItem('ver_page', pageId);
+  };
+
+  // Login manual — salva perfil no localStorage para restore rápido
+  const handleLogin = (u) => {
+    localStorage.setItem('ver_user', JSON.stringify(u));
+    setUser(u);
+    const defaultPage = u.role === 'manager' ? 'dashboard' : 'payment';
+    setPage(defaultPage);
+    localStorage.setItem('ver_page', defaultPage);
+    requestNotificationPermission();
+    setTimeout(() => {
+      sendLocalNotification(
+        `Olá, ${u.name}! 👋`,
+        u.role === 'manager'
+          ? 'Painel do gestor carregado. Dados disponíveis offline.'
+          : 'Acesso liberado. Seus dados estão disponíveis.'
+      );
+    }, 1500);
+  };
+
+  // Logout — limpa tudo
+  const handleLogout = async () => {
+    localStorage.removeItem('ver_user');
+    localStorage.removeItem('ver_page');
+    if (isSupabaseEnabled) await supabase.auth.signOut();
+    setUser(null);
+    setPage(null);
+  };
+
+  // Login gate
+  if (!user) return <LoginScreen onLogin={handleLogin} />;
+
+  const nav = user.role === 'manager' ? MANAGER_NAV : MEMBER_NAV;
+  const activePage = page || nav[0].id;
+
+  const handleAdd = (rec) => {
+    if (rec.type === 'payment') addPayment(rec);
+    else if (rec.type === 'donation') addDonation(rec);
+    else addTransaction(rec);
+
+    // Notificação local de confirmação
+    const labels = { payment: 'Pagamento registrado', donation: 'Doação registrada', expense: 'Despesa registrada' };
+    const fmt = (v) => `R$ ${Number(v || 0).toFixed(2).replace('.', ',')}`;
+    sendLocalNotification(
+      `${labels[rec.type] || 'Registro'} ✓`,
+      `${rec.name || rec.desc || 'Item'} — ${fmt(rec.value)}${!isOnline ? ' (salvo offline)' : ''}`
+    );
+
+    if (!isOnline) {
+      showToast('Salvo localmente. Será sincronizado quando a internet voltar.', 'info');
+    }
+  };
+
+  const handleAIRefresh = () => fetchRecommendations(transactions, totals);
+
+  const renderPage = () => {
+    switch (activePage) {
+      case 'dashboard':   return <Dashboard totals={totals} categoryBreakdown={categoryBreakdown} memberStats={memberStats} />;
+      case 'payment':     return <PaymentForm onAdd={handleAdd} onShowReceipt={setReceiptTx} user={user} transactions={transactions} />;
+      case 'donation':    return <DonationForm onAdd={handleAdd} user={user} />;
+      case 'expense':     return <ExpenseForm onAdd={handleAdd} onShowReceipt={setReceiptTx} />;
+      case 'history':     return <HistoryView transactions={transactions} onShowReceipt={setReceiptTx} />;
+      case 'transparency':return <TransparencyView transactions={transactions} totals={totals} categoryBreakdown={categoryBreakdown} expensesOnly={user?.role !== 'manager'} />;
+      case 'expenses':    return <TransparencyView transactions={transactions} totals={totals} categoryBreakdown={categoryBreakdown} expensesOnly />;
+      case 'export':      return <AmazonPeopleExport transactions={transactions} totals={totals} members={[]} user={user} />;
+      case 'ai':          return <AIRecommendations recommendations={recommendations} loading={loadingRec} onRefresh={handleAIRefresh} />;
+      default:            return <Dashboard totals={totals} categoryBreakdown={categoryBreakdown} memberStats={memberStats} />;
+    }
+  };
+
+  return (
+    <div className="app-shell">
+      {receiptTx && <ReceiptModal transaction={receiptTx} onClose={() => setReceiptTx(null)} />}
+      <SyncToast toast={syncing ? { msg: 'Sincronizando dados...', type: 'syncing' } : toast} onClose={() => {}} />
+
+      {/* Sidebar */}
+      <aside className="sidebar">
+        <div className="sidebar-header">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Building2 size={17} color="#fff" />
+            </div>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--text-primary)' }}>Valor em Rede</div>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'capitalize' }}>{user.role === 'manager' ? 'Gestão' : 'Membros'}</div>
+            </div>
+          </div>
+        </div>
+
+        <nav style={{ flex: 1, padding: '0.5rem 0' }}>
+          {nav.map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              className={`nav-item${activePage === id ? ' active' : ''}`}
+              onClick={() => navigateTo(id)}
+            >
+              <Icon size={18} />
+              <span>{label}</span>
+            </button>
+          ))}
+        </nav>
+
+        <div className="theme-toggle-desktop" style={{ padding: '1rem', borderTop: '1px solid var(--border)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+            <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{ color: '#fff', fontWeight: 700, fontSize: '0.75rem' }}>{user.name?.charAt(0)?.toUpperCase()}</span>
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: '0.8rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.name}</div>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{user.email}</div>
+            </div>
+          </div>
+          <button
+            className="btn btn-secondary"
+            style={{ width: '100%', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.4rem 0.5rem' }}
+            onClick={() => setTheme(prev => prev === 'dark' ? 'light' : 'dark')}
+            title={theme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro'}
+            aria-label={theme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro'}
+          >
+            {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+          </button>
+          <button
+            className="btn btn-ghost"
+            style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '0.4rem', justifyContent: 'flex-start', padding: '0.4rem 0.5rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}
+            onClick={handleLogout}
+          >
+            <LogOut size={15} /> Sair
+          </button>
+        </div>
+      </aside>
+
+      {/* Main */}
+      <div className="main-content">
+        <Header
+          user={user}
+          ollamaStatus={ollamaStatus}
+          onLogout={handleLogout}
+          isOnline={isOnline}
+          pendingCount={pending.length}
+          syncing={syncing}
+          onSyncNow={syncPending}
+          theme={theme}
+          onToggleTheme={() => setTheme(prev => prev === 'dark' ? 'light' : 'dark')}
+        />
+        <main style={{ flex: 1, overflow: 'auto' }}>
+          {renderPage()}
+        </main>
+
+        {/* Mobile bottom nav */}
+        <nav className="mobile-nav">
+          <div className="mobile-nav-inner">
+            {nav.slice(0, 5).map(({ id, label, icon: Icon }) => (
+              <button
+                key={id}
+                className={`mobile-nav-item${activePage === id ? ' active' : ''}`}
+                onClick={() => navigateTo(id)}
+              >
+                <Icon size={20} />
+                <span>{label}</span>
+              </button>
+            ))}
+          </div>
+        </nav>
+      </div>
+    </div>
+  );
+}
