@@ -1,9 +1,5 @@
-- [x] Atualizar seção do formulário de pagamento (step 1) para fundo preto
-- [x] Ajustar contraste de textos/inputs/bordas na seção alterada
-- [x] Implementar esquema de cores com contraste para modo claro/escuro
-- [x] Adicionar toggle de tema (claro/escuro) na interface
-- [x] Aplicar tokens de tema no PaymentForm (step 1) sem hardcode
-- [ ] Garantir botão de tema visível com fallback fixo na UI
-- [ ] Forçar refresh de cache/SW antigos no carregamento
-- [ ] Subir correção direto na branch main
-- [ ] Marcar validação visual concluída
+- [x] Atualizar tema visual para fundo branco e ajustes de contraste em `valor_em_rede.html`
+- [x] Atualizar textos institucionais para posicionamento de gestão geral com IA simples e transparência
+- [x] Incluir abrangência rural e urbana, baixa conectividade e baixo letramento digital
+- [x] Revisar consistência textual e ortográfica
+- [ ] Commitar e enviar alterações para o GitHub
