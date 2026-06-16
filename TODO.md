@@ -2,4 +2,5 @@
 - [x] Atualizar textos institucionais para posicionamento de gestão geral com IA simples e transparência
 - [x] Incluir abrangência rural e urbana, baixa conectividade e baixo letramento digital
 - [x] Revisar consistência textual e ortográfica
+- [ ] Melhorar contraste de textos, bordas e separação visual no tema claro
 - [ ] Commitar e enviar alterações para o GitHub
