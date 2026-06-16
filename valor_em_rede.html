@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Valor em Rede – Gestão que Cultiva Resultados</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --verde: #6abf2e;
+    --verde-escuro: #3a6b10;
+    --verde-claro: #9dd95a;
+    --preto: #0a0a0a;
+    --cinza-escuro: #111111;
+    --cinza-medio: #1e1e1e;
+    --cinza-texto: #aaaaaa;
+    --branco: #f0f0f0;
+    --branco-puro: #ffffff;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--preto);
+    color: var(--branco);
+    overflow-x: hidden;
+    line-height: 1.7;
+  }
+
+  /* NAV */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    padding: 1.2rem 3rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(10,10,10,0.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(106,191,46,0.15);
+  }
+
+  .nav-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.6rem;
+    letter-spacing: 0.18em;
+    color: var(--branco);
+  }
+
+  .nav-logo span { color: var(--verde); }
+
+  .nav-links { display: flex; gap: 2.5rem; list-style: none; }
+  .nav-links a {
+    font-size: 0.78rem;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--cinza-texto);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  .nav-links a:hover { color: var(--verde); }
+
+  /* HERO */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 10rem 3rem 5rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero-bg-grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(106,191,46,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(106,191,46,0.04) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none;
+  }
+
+  .hero-sweep {
+    position: absolute;
+    bottom: -40px;
+    right: -60px;
+    width: 60vw;
+    height: 80vh;
+    opacity: 0.07;
+    pointer-events: none;
+  }
+
+  .hero-eyebrow {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--verde);
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+  }
+
+  .hero-eyebrow::before {
+    content: '';
+    display: block;
+    width: 32px;
+    height: 2px;
+    background: var(--verde);
+  }
+
+  .hero h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(3.5rem, 9vw, 8rem);
+    line-height: 0.93;
+    letter-spacing: 0.04em;
+    color: var(--branco);
+    max-width: 18ch;
+    margin-bottom: 0.6rem;
+  }
+
+  .hero h1 .highlight { color: var(--verde); }
+
+  .hero-sub {
+    font-size: clamp(1rem, 2vw, 1.25rem);
+    font-weight: 300;
+    color: var(--cinza-texto);
+    max-width: 44ch;
+    margin-top: 2rem;
+    margin-bottom: 3rem;
+  }
+
+  .hero-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 0.9rem 2rem;
+    border: 1.5px solid var(--verde);
+    color: var(--verde);
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    text-decoration: none;
+    transition: background 0.25s, color 0.25s;
+  }
+
+  .hero-cta:hover {
+    background: var(--verde);
+    color: var(--preto);
+  }
+
+  .hero-cta svg { transition: transform 0.2s; }
+  .hero-cta:hover svg { transform: translateX(4px); }
+
+  /* DIVIDER LINE */
+  .section-divider {
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(106,191,46,0.3), transparent);
+    margin: 0;
+  }
+
+  /* SECTIONS */
+  section {
+    padding: 6rem 3rem;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .section-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--verde);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+  }
+
+  .section-label::before {
+    content: '';
+    display: block;
+    width: 20px;
+    height: 1.5px;
+    background: var(--verde);
+  }
+
+  .section-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(2.4rem, 5vw, 4rem);
+    line-height: 0.97;
+    letter-spacing: 0.04em;
+    color: var(--branco);
+    margin-bottom: 1.5rem;
+  }
+
+  .section-title .highlight { color: var(--verde); }
+
+  /* PROBLEMA */
+  .problema-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3rem;
+    margin-top: 3rem;
+    align-items: start;
+  }
+
+  .problema-texto {
+    font-size: 1rem;
+    color: var(--cinza-texto);
+    line-height: 1.9;
+  }
+
+  .problema-texto p + p { margin-top: 1.2rem; }
+  .problema-texto strong { color: var(--branco); font-weight: 600; }
+
+  .problema-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  .problema-card {
+    padding: 1.6rem 1.8rem;
+    border: 1px solid rgba(106,191,46,0.12);
+    background: rgba(106,191,46,0.03);
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s, background 0.2s;
+  }
+
+  .problema-card:hover {
+    border-color: rgba(106,191,46,0.35);
+    background: rgba(106,191,46,0.06);
+  }
+
+  .problema-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--verde);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .problema-card:hover::before { opacity: 1; }
+
+  .card-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2.5rem;
+    line-height: 1;
+    color: rgba(106,191,46,0.15);
+    margin-bottom: 0.5rem;
+    letter-spacing: 0.05em;
+  }
+
+  .card-title {
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--branco);
+    margin-bottom: 0.4rem;
+  }
+
+  .card-desc {
+    font-size: 0.88rem;
+    color: var(--cinza-texto);
+    line-height: 1.7;
+  }
+
+  /* SOLUÇÃO */
+  .solucao-wrapper {
+    background: var(--cinza-escuro);
+    padding: 6rem 0;
+    border-top: 1px solid rgba(255,255,255,0.04);
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+
+  .solucao-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 3rem;
+  }
+
+  .solucao-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1.5px;
+    margin-top: 3.5rem;
+    background: rgba(106,191,46,0.08);
+  }
+
+  .feature-block {
+    background: var(--cinza-escuro);
+    padding: 2.2rem 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    transition: background 0.2s;
+  }
+
+  .feature-block:hover { background: rgba(106,191,46,0.04); }
+
+  .feature-icon {
+    width: 44px;
+    height: 44px;
+    border: 1px solid rgba(106,191,46,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--verde);
+  }
+
+  .feature-icon svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.8; }
+
+  .feature-title {
+    font-size: 0.88rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--branco);
+  }
+
+  .feature-desc {
+    font-size: 0.88rem;
+    color: var(--cinza-texto);
+    line-height: 1.75;
+  }
+
+  /* MODELO DE NEGÓCIO */
+  .modelo-row {
+    display: flex;
+    align-items: center;
+    gap: 5rem;
+    margin-top: 3.5rem;
+  }
+
+  .modelo-text { flex: 1; }
+  .modelo-text p {
+    font-size: 1rem;
+    color: var(--cinza-texto);
+    line-height: 1.9;
+  }
+  .modelo-text p + p { margin-top: 1.2rem; }
+  .modelo-text strong { color: var(--branco); }
+
+  .modelo-badge-stack {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+  }
+
+  .badge {
+    padding: 1rem 1.6rem;
+    border: 1px solid rgba(106,191,46,0.2);
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--verde);
+    white-space: nowrap;
+    position: relative;
+  }
+
+  .badge::after {
+    content: '→';
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1rem;
+  }
+
+  /* TIME */
+  .time-wrapper {
+    background: var(--cinza-escuro);
+    padding: 6rem 0;
+    border-top: 1px solid rgba(255,255,255,0.04);
+  }
+
+  .time-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 3rem;
+  }
+
+  .time-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 1.5px;
+    margin-top: 3.5rem;
+    background: rgba(106,191,46,0.06);
+  }
+
+  .membro-card {
+    background: var(--cinza-escuro);
+    padding: 2rem 1.6rem;
+    transition: background 0.2s;
+  }
+
+  .membro-card:hover { background: rgba(106,191,46,0.04); }
+
+  .membro-avatar {
+    width: 52px;
+    height: 52px;
+    border: 1px solid rgba(106,191,46,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1.2rem;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.3rem;
+    letter-spacing: 0.05em;
+    color: var(--verde);
+  }
+
+  .membro-nome {
+    font-size: 0.88rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--branco);
+    margin-bottom: 0.3rem;
+  }
+
+  .membro-cargo {
+    font-size: 0.76rem;
+    color: var(--cinza-texto);
+    margin-bottom: 0.6rem;
+    line-height: 1.5;
+  }
+
+  .membro-tag {
+    display: inline-block;
+    padding: 0.25rem 0.7rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    background: rgba(106,191,46,0.1);
+    color: var(--verde-claro);
+    border: 1px solid rgba(106,191,46,0.2);
+  }
+
+  .membro-tag.adm {
+    background: rgba(255,255,255,0.04);
+    color: var(--cinza-texto);
+    border-color: rgba(255,255,255,0.1);
+  }
+
+  .socio-mark {
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: rgba(106,191,46,0.5);
+    margin-top: 0.5rem;
+  }
+
+  /* FOOTER */
+  footer {
+    padding: 4rem 3rem 3rem;
+    max-width: 1200px;
+    margin: 0 auto;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+  }
+
+  .footer-brand {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.3rem;
+    letter-spacing: 0.2em;
+    color: var(--branco);
+    margin-bottom: 0.5rem;
+  }
+
+  .footer-brand span { color: var(--verde); }
+
+  .footer-sub {
+    font-size: 0.72rem;
+    color: var(--cinza-texto);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .footer-copy {
+    font-size: 0.72rem;
+    color: rgba(255,255,255,0.2);
+    text-align: right;
+  }
+
+  /* SCROLL REVEAL */
+  .reveal {
+    opacity: 0;
+    transform: translateY(28px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+  .reveal.visible {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* RESPONSIVE */
+  @media (max-width: 900px) {
+    nav { padding: 1rem 1.5rem; }
+    .nav-links { display: none; }
+    section { padding: 4rem 1.5rem; }
+    .hero { padding: 8rem 1.5rem 4rem; }
+    .problema-grid { grid-template-columns: 1fr; }
+    .solucao-inner, .time-inner { padding: 0 1.5rem; }
+    .solucao-grid { grid-template-columns: 1fr; }
+    .time-grid { grid-template-columns: 1fr 1fr; }
+    .modelo-row { flex-direction: column; gap: 2.5rem; }
+    .modelo-badge-stack { flex-direction: row; flex-wrap: wrap; }
+    footer { flex-direction: column; align-items: flex-start; gap: 1rem; }
+    .footer-copy { text-align: left; }
+  }
+
+  @media (max-width: 540px) {
+    .time-grid { grid-template-columns: 1fr; }
+    .hero h1 { font-size: 3rem; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .reveal { opacity: 1; transform: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">Valor em <span>Rede</span></div>
+  <ul class="nav-links">
+    <li><a href="#problema">O Problema</a></li>
+    <li><a href="#solucao">Solução</a></li>
+    <li><a href="#modelo">Modelo</a></li>
+    <li><a href="#time">Time</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<div style="position:relative; overflow:hidden;">
+  <div class="hero-bg-grid"></div>
+
+  <!-- Decorative sweeping R leg lines from the logo -->
+  <svg class="hero-sweep" viewBox="0 0 800 700" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <path d="M0 200 Q400 350 800 700" stroke="#6abf2e" stroke-width="2" fill="none"/>
+    <path d="M0 300 Q400 420 800 750" stroke="#6abf2e" stroke-width="1.5" fill="none"/>
+    <path d="M0 400 Q400 500 800 800" stroke="#6abf2e" stroke-width="1" fill="none"/>
+  </svg>
+
+  <div class="hero">
+    <div class="hero-eyebrow">Gestão que Cultiva Resultados</div>
+    <h1>Transparência<br>para quem <span class="highlight">constrói</span><br>junto.</h1>
+    <p class="hero-sub">Uma plataforma simples e acessível para gestão de associações rurais — controle de contribuições, registros financeiros e decisões coletivas ao alcance de todos os membros.</p>
+    <a href="#problema" class="hero-cta">
+      Conheça nossa proposta
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+    </a>
+  </div>
+</div>
+
+<div class="section-divider"></div>
+
+<!-- PROBLEMA -->
+<section id="problema">
+  <div class="reveal">
+    <div class="section-label">O Problema</div>
+    <h2 class="section-title">Recursos coletivos,<br>gestão <span class="highlight">invisível.</span></h2>
+  </div>
+
+  <div class="problema-grid">
+    <div class="problema-texto reveal">
+      <p>Hoje, muitas associações rurais movimentam recursos coletivos, mas ainda fazem essa gestão de forma <strong>informal</strong>. Em comunidades como Jutaiteua, dezenas ou até centenas de membros contribuem financeiramente todos os meses, mas não existe uma ferramenta simples para acompanhar quem pagou, como o dinheiro está sendo utilizado e quais decisões foram tomadas.</p>
+      <p>Esse cenário gera <strong>falta de transparência, dificuldade de organização</strong> e, muitas vezes, desconfiança entre os próprios membros da associação — prejudicando o potencial de desenvolvimento dessas comunidades.</p>
+      <p>Começamos resolvendo um problema direto e <strong>validado em campo</strong>: a falta de transparência e organização na gestão de recursos coletivos.</p>
+    </div>
+
+    <div class="problema-cards reveal">
+      <div class="problema-card">
+        <div class="card-num">01</div>
+        <div class="card-title">Falta de Transparência</div>
+        <div class="card-desc">Sem registro formal, membros não têm visibilidade sobre o uso dos recursos da associação.</div>
+      </div>
+      <div class="problema-card">
+        <div class="card-num">02</div>
+        <div class="card-title">Desorganização Financeira</div>
+        <div class="card-desc">Controle manual de contribuições gera erros, lacunas e conflitos difíceis de resolver.</div>
+      </div>
+      <div class="problema-card">
+        <div class="card-num">03</div>
+        <div class="card-title">Desconfiança Coletiva</div>
+        <div class="card-desc">A ausência de dados claros corrói a confiança entre membros e lideranças da comunidade.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- SOLUÇÃO -->
+<div class="solucao-wrapper" id="solucao">
+  <div class="solucao-inner">
+    <div class="reveal">
+      <div class="section-label">Nossa Solução</div>
+      <h2 class="section-title">Valor em Rede:<br>gestão <span class="highlight">acessível</span><br>para o campo.</h2>
+    </div>
+
+    <div class="solucao-grid reveal">
+
+      <div class="feature-block">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+        </div>
+        <div class="feature-title">Controle de Contribuições</div>
+        <div class="feature-desc">Registro claro de quem pagou, quando e quanto — sem planilhas, sem papéis, sem dúvidas.</div>
+      </div>
+
+      <div class="feature-block">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        </div>
+        <div class="feature-title">Transparência Total</div>
+        <div class="feature-desc">Todos os membros podem visualizar entradas, saídas e o histórico financeiro da associação em tempo real.</div>
+      </div>
+
+      <div class="feature-block">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        </div>
+        <div class="feature-title">Relatórios Simples</div>
+        <div class="feature-desc">Visualização clara das informações financeiras, sem necessidade de conhecimento técnico.</div>
+      </div>
+
+      <div class="feature-block">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <div class="feature-title">Gestão de Membros</div>
+        <div class="feature-desc">Cadastro e acompanhamento de todos os associados com histórico individual de participação.</div>
+      </div>
+
+      <div class="feature-block">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+        </div>
+        <div class="feature-title">Acesso pelo Celular</div>
+        <div class="feature-desc">Desenvolvida para funcionar em comunidades com baixa infraestrutura digital, via smartphone.</div>
+      </div>
+
+      <div class="feature-block">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <div class="feature-title">Confiança Estruturada</div>
+        <div class="feature-desc">Dados auditáveis que fortalecem a governança coletiva e a credibilidade das lideranças locais.</div>
+      </div>
+
+    </div>
+
+    <div style="margin-top: 3rem; padding: 2rem; border: 1px solid rgba(106,191,46,0.2); background: rgba(106,191,46,0.04);" class="reveal">
+      <div style="font-size: 0.7rem; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: var(--verde); margin-bottom: 0.8rem;">Estágio atual</div>
+      <p style="font-size: 0.95rem; color: var(--cinza-texto); line-height: 1.8;">Já desenvolvemos um <strong style="color:var(--branco);">protótipo funcional</strong> que demonstra como os usuários podem acompanhar as informações da associação e interagir com os dados. O próximo passo é estruturar a base de dados e evoluir o sistema para uso real nas comunidades.</p>
+    </div>
+  </div>
+</div>
+
+<div class="section-divider"></div>
+
+<!-- MODELO -->
+<section id="modelo">
+  <div class="reveal">
+    <div class="section-label">Modelo de Negócio</div>
+    <h2 class="section-title">B2B com propósito<br><span class="highlight">regional.</span></h2>
+  </div>
+
+  <div class="modelo-row reveal">
+    <div class="modelo-text">
+      <p>Nossa abordagem é <strong>B2B</strong>, voltada para associações, cooperativas e instituições que atuam em regiões rurais. Oferecemos a plataforma como ferramenta de gestão e acompanhamento para organizações que já agregam membros e precisam de um sistema confiável para gerir seus recursos coletivos.</p>
+      <p>O diferencial está na <strong>simplicidade e no foco em comunidades com baixa infraestrutura</strong> — uma solução digital pensada para a realidade local, sem exigir conhecimento técnico avançado ou conexão de alta velocidade.</p>
+      <p>Nosso objetivo é <strong>fortalecer a estrutura das associações rurais</strong>, tornando a gestão mais clara, confiável e acessível para todos os membros — do presidente ao contribuinte mais recente.</p>
+    </div>
+
+    <div class="modelo-badge-stack">
+      <div class="badge">Associações Rurais</div>
+      <div class="badge">Cooperativas</div>
+      <div class="badge">Instituições Regionais</div>
+      <div class="badge">Comunidades Locais</div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- TIME -->
+<div class="time-wrapper" id="time">
+  <div class="time-inner">
+    <div class="reveal">
+      <div class="section-label">Nosso Time</div>
+      <h2 class="section-title">Quem <span class="highlight">cultiva</span><br>essa ideia.</h2>
+    </div>
+
+    <div class="time-grid reveal">
+
+      <div class="membro-card">
+        <div class="membro-avatar">AP</div>
+        <div class="membro-nome">Adisson Pires</div>
+        <div class="membro-cargo">Cientista da Computação · Desenvolvedor de Software</div>
+        <div class="membro-tag">Dev & Sócio</div>
+        <div class="socio-mark">Sócio Fundador</div>
+      </div>
+
+      <div class="membro-card">
+        <div class="membro-avatar">WO</div>
+        <div class="membro-nome">Wisley Oliveira</div>
+        <div class="membro-cargo">Cientista da Computação · Desenvolvedor de Software</div>
+        <div class="membro-tag">Dev & Sócio</div>
+        <div class="socio-mark">Sócio Fundador</div>
+      </div>
+
+      <div class="membro-card">
+        <div class="membro-avatar">LP</div>
+        <div class="membro-nome">Lucas Pinto</div>
+        <div class="membro-cargo">Cientista da Computação · Desenvolvedor de Software</div>
+        <div class="membro-tag">Dev & Sócio</div>
+        <div class="socio-mark">Sócio Fundador</div>
+      </div>
+
+      <div class="membro-card">
+        <div class="membro-avatar">PN</div>
+        <div class="membro-nome">Pedro Neves</div>
+        <div class="membro-cargo">Administrador de Empresas</div>
+        <div class="membro-tag adm">Gestão & Sócio</div>
+        <div class="socio-mark">Sócio Fundador</div>
+      </div>
+
+      <div class="membro-card">
+        <div class="membro-avatar">AL</div>
+        <div class="membro-nome">Andre Leite</div>
+        <div class="membro-cargo">Engenheiro Civil</div>
+        <div class="membro-tag adm">Engenharia & Sócio</div>
+        <div class="socio-mark">Sócio Fundador</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div style="background: var(--preto);">
+  <footer>
+    <div>
+      <div class="footer-brand">Valor em <span>Rede</span></div>
+      <div class="footer-sub">Gestão que cultiva resultados</div>
+    </div>
+    <div class="footer-copy">
+      © 2025 Valor em Rede.<br>Todos os direitos reservados.
+    </div>
+  </footer>
+</div>
+
+<script>
+  const reveals = document.querySelectorAll('.reveal');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry, i) => {
+      if (entry.isIntersecting) {
+        setTimeout(() => entry.target.classList.add('visible'), i * 80);
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.12 });
+  reveals.forEach(el => observer.observe(el));
+</script>
+
+</body>
+</html>
